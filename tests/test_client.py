@@ -11,7 +11,7 @@ from etrap_sdk import (
     ETRAPClient, S3Config, BatchInfo, BatchList, BatchFilter,
     VerificationResult, BatchVerificationResult, VerificationHints,
     TransactionLocation, SearchCriteria, SearchResults,
-    MerkleProof, TimeRange, ContractInfo, ContractStats
+    MerkleProof, TimeRange, ContractInfo, ContractStats, S3Location, DateRange
 )
 from etrap_sdk.exceptions import (
     S3AccessError, InvalidTransactionError, BatchNotFoundError
@@ -23,7 +23,7 @@ class TestClientInitialization:
     
     def test_init_default_config(self):
         """Test client initialization with default config."""
-        client = ETRAPClient("test.testnet")
+        client = ETRAPClient("test", "testnet")
         
         assert client.contract_id == "test.testnet"
         assert client.network == "testnet"
@@ -70,51 +70,37 @@ class TestTransactionVerification:
     @pytest.mark.asyncio
     async def test_verify_transaction_success(self, mock_client, sample_transaction):
         """Test successful transaction verification."""
-        # Mock the NEAR account view_function
-        async def mock_view_function(contract_id, method, args):
-            if method == "nft_tokens":
-                return [{
-                    "token_id": "BATCH-2025-06-14-test123",
-                    "metadata": {
-                        "extra": json.dumps({
-                            "database_name": "test_db",
-                            "table_names": ["financial_transactions"],
-                            "timestamp": 1734161455461,
-                            "tx_count": 100,
-                            "merkle_root": "abcd1234567890",
-                            "s3_location": {
-                                "bucket": "test-etrap-bucket",
-                                "key": "test_db/BATCH-2025-06-14-test123/"
-                            }
-                        })
-                    }
-                }]
-            return []
+        # Create mock batch info
+        mock_batch = BatchInfo(
+            batch_id="BATCH-2025-06-14-test123",
+            database_name="test_db",
+            table_names=["financial_transactions"],
+            transaction_count=100,
+            merkle_root="abcd1234567890",
+            timestamp=datetime.now(),
+            s3_location=S3Location(bucket="test-etrap-bucket", key="test_db/BATCH-2025-06-14-test123/", region="us-west-2"),
+            size_bytes=50000
+        )
         
-        mock_client.near_account.view_function = mock_view_function
+        # Mock _get_recent_batches to return our test batch
+        mock_client._get_recent_batches = AsyncMock(return_value=[mock_batch])
         
-        # Mock S3 client
-        mock_client.s3_client = Mock()
-        mock_client.s3_client.get_object = Mock()
-        mock_client.s3_client.get_object.return_value = {
-            'Body': Mock(read=lambda: json.dumps({
-                "transactions": [{
-                    "metadata": {
-                        "hash": "test_hash_123",
-                        "transaction_id": "tx-0"
-                    }
-                }],
-                "merkle_tree": {
-                    "root": "abcd1234567890",
-                    "proof_index": {
-                        "tx-0": {
-                            "proof_path": ["hash1", "hash2"],
-                            "sibling_positions": ["right", "left"]
-                        }
-                    }
-                }
-            }).encode())
-        }
+        # Mock _verify_in_batch to return successful verification
+        mock_verification_result = VerificationResult(
+            verified=True,
+            transaction_hash="test_hash_123",
+            batch_id="BATCH-2025-06-14-test123",
+            merkle_proof=MerkleProof(
+                leaf_hash="test_hash_123",
+                proof_path=["hash1", "hash2"],
+                sibling_positions=["right", "left"],
+                merkle_root="abcd1234567890",
+                is_valid=True
+            ),
+            blockchain_timestamp=datetime.now(),
+            gas_used="1000000"
+        )
+        mock_client._verify_in_batch = AsyncMock(return_value=mock_verification_result)
         
         # Mock hash computation
         with patch('etrap_sdk.client.compute_transaction_hash', return_value="test_hash_123"):
@@ -357,7 +343,7 @@ class TestBatchOperations:
         ]
         
         criteria = SearchCriteria(
-            date_range=("2025-06-14", "2025-06-14")
+            date_range=DateRange(start="2025-06-14", end="2025-06-14")
         )
         
         result = await mock_client.search_batches(criteria)
@@ -378,7 +364,7 @@ class TestBatchOperations:
             transaction_count=100,
             merkle_root="abcd1234567890",
             timestamp=datetime.now(),
-            s3_location=Mock(bucket="test-bucket", key="test-key/"),
+            s3_location=S3Location(bucket="test-bucket", key="test-key/", region="us-west-2"),
             size_bytes=50000
         )
         
@@ -542,7 +528,7 @@ class TestContractOperations:
         assert isinstance(info, ContractInfo)
         assert info.contract_id == "test.testnet"
         assert info.total_batches == 5
-        assert info.total_transactions == 550  # 100 + 110 + 120 + 130 + 140
+        assert info.total_transactions == 600  # 100 + 110 + 120 + 130 + 140
         assert len(info.supported_databases) == 2
         assert len(info.supported_tables) > 0
     

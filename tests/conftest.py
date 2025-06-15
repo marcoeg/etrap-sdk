@@ -36,7 +36,7 @@ def mock_s3_config():
 def mock_client(mock_s3_config):
     """Create a mock ETRAP client."""
     return ETRAPClient(
-        contract_id="test.testnet",
+        organization_id="test",
         network="testnet",
         s3_config=mock_s3_config
     )
@@ -124,9 +124,9 @@ def sample_batch_data():
             }
         ],
         "indices": {
-            "by_timestamp": {"1734161455461": [0]},
-            "by_operation": {"INSERT": [0]},
-            "by_date": {"2025-06-14": [0]}
+            "by_timestamp": {"1734161455461": ["0"]},
+            "by_operation": {"INSERT": ["0"]},
+            "by_date": {"2025-06-14": ["0"]}
         }
     }
 
