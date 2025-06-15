@@ -24,8 +24,10 @@ def normalize_transaction_data(transaction_data: Dict[str, Any]) -> Dict[str, An
     """
     normalized = transaction_data.copy()
     
-    # Normalize numeric fields to strings (including id)
-    for field in ['id', 'amount', 'balance', 'count']:
+    # Normalize numeric amounts to strings (but NOT id field)
+    # Only normalize fields that represent monetary values or counts
+    # Keep id fields as integers to match original etrap_verify.py behavior
+    for field in ['amount', 'balance', 'total', 'price', 'cost', 'value']:
         if field in normalized and isinstance(normalized[field], (int, float)):
             normalized[field] = str(normalized[field])
     

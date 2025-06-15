@@ -708,9 +708,167 @@ logging.getLogger('etrap_sdk').setLevel(logging.DEBUG)
 - NEAR account access (for blockchain queries)
 - AWS credentials (optional, for S3 access)
 
+## Troubleshooting Transaction Verification Issues
+
+### Investigating Failed Verifications
+
+When a transaction verification fails unexpectedly, follow these steps to diagnose the issue:
+
+#### Step 1: Verify the Transaction Hash Calculation
+
+First, check that the transaction hash is being calculated correctly:
+
+```bash
+# Use the hash_computation.py tool to see the computed hash
+python hash_computation.py '{"id":109,"account_id":"ACC999","amount":"999.99","type":"C","created_at":"2025-06-14T07:10:55.461133","reference":"TEST-VERIFY"}'
+
+# Output shows:
+# - Original transaction data types
+# - Normalized transaction (what gets hashed)
+# - Hash with normalization
+# - Hash without normalization
+```
+
+#### Step 2: Check if the Batch Exists
+
+List recent batches to see what's actually on the blockchain:
+
+```bash
+# List recent batches
+python list_batches.py -o acme
+
+# Look for the batch you're trying to verify
+# Note the Merkle root - for single-transaction batches, this equals the transaction hash
+```
+
+#### Step 3: Compare with Original Tool
+
+If you have access to the original `etrap_verify.py`, compare results:
+
+```bash
+# Original tool
+python3 /path/to/etrap_verify.py -c acme.testnet --data '{"id":109,...}'
+
+# SDK tool
+python etrap_verify_sdk.py -o acme --data '{"id":109,...}'
+
+# Compare the computed hashes - they should match
+```
+
+#### Step 4: Debug Batch Contents
+
+Use the debug tool to inspect batch metadata:
+
+```bash
+python debug_batch.py BATCH-2025-06-14-978b1710
+
+# This shows:
+# - Raw NFT data from contract
+# - Parsed batch information
+# - S3 location details
+```
+
+#### Step 5: Common Issues and Solutions
+
+##### Issue: Different Hash Calculations
+
+**Symptom**: SDK calculates a different hash than the original tool
+
+**Cause**: Normalization differences, especially with numeric fields
+
+**Solution**: Check the normalization logic in `src/etrap_sdk/utils.py`:
+- The SDK should NOT convert `id` fields to strings (keep as integers)
+- Only monetary fields (`amount`, `balance`, etc.) should be normalized to strings
+- Timestamps should be normalized to ISO format with milliseconds
+
+**Example Fix**:
+```python
+# WRONG - converts id to string
+for field in ['id', 'amount', 'balance', 'count']:
+    if field in normalized and isinstance(normalized[field], (int, float)):
+        normalized[field] = str(normalized[field])
+
+# CORRECT - keeps id as integer
+for field in ['amount', 'balance', 'total', 'price', 'cost', 'value']:
+    if field in normalized and isinstance(normalized[field], (int, float)):
+        normalized[field] = str(normalized[field])
+```
+
+##### Issue: Transaction Not Found in Batch
+
+**Symptom**: "Transaction not found in specified batch"
+
+**Cause**: The transaction hash doesn't match what's in the batch
+
+**Solution**: 
+1. Check the batch's Merkle root (for single-tx batches, this IS the transaction hash)
+2. Verify your transaction data exactly matches what was recorded
+3. Pay attention to timestamp precision and format
+
+##### Issue: Transaction Not Found in Blockchain
+
+**Symptom**: "Transaction not found in blockchain records"
+
+**Cause**: The transaction was never recorded, or search depth is insufficient
+
+**Solution**:
+1. Verify the transaction was actually recorded by the CDC agent
+2. Try without hints to search all recent batches
+3. Increase search depth if needed
+
+#### Step 6: Test Data vs Real Data
+
+Be aware of the difference:
+- **Test data**: May not exist on blockchain, used for unit tests
+- **Real data**: Actually recorded transactions with valid hashes
+
+To find real transactions for testing:
+```bash
+# List recent batches and note single-transaction batches
+python list_batches.py -o acme
+
+# For single-tx batches, the Merkle root IS the transaction hash
+# You need the original transaction data that produces this hash
+```
+
+### Example Investigation Walkthrough
+
+Here's a real example of investigating a verification failure:
+
+```bash
+# 1. Try to verify - it fails
+$ python etrap_verify_sdk.py -o acme --data '{"id":109,...}' --hint-batch BATCH-2025-06-14-978b1710
+❌ VERIFICATION FAILED
+Error: Transaction not found in specified batch
+
+# 2. Check what hash we're computing
+$ python hash_computation.py '{"id":109,...}'
+Hash with normalization: 8684c656d2addf8abb8408699d81eeed3576da03254364bc1e9ca614d0eff8ab
+
+# 3. Check what's actually in the batch
+$ python list_batches.py -o acme | grep 978b1710
+3. Batch ID: BATCH-2025-06-14-978b1710
+   Merkle root: 147236710593a5eb2f386b7fa1508bf563a11b73b3d580219db2b59c2e135fc8
+
+# 4. Hashes don't match! Check with original tool
+$ python3 /path/to/etrap_verify.py -c acme.testnet --data '{"id":109,...}'
+📊 Transaction Hash: 147236710593a5eb2f386b7fa1508bf5...
+✅ TRANSACTION VERIFIED
+
+# 5. Original tool gets different hash - normalization issue!
+# Fix: Update SDK normalization to match original behavior
+# (Don't convert 'id' field to string)
+
+# 6. After fix, verify it works
+$ python etrap_verify_sdk.py -o acme --data '{"id":109,...}'
+📊 Transaction Hash: 147236710593a5eb2f386b7fa1508bf563a11b73b3d580219db2b59c2e135fc8
+✅ TRANSACTION VERIFIED
+```
+
 ## Support
 
 For issues or questions:
 - Check the main SDK documentation
 - Review error messages for specific guidance
 - Enable debug logging with `with_logging.py` example
+- Follow the troubleshooting steps above for verification issues
