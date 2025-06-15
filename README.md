@@ -43,7 +43,7 @@ This project uses [uv](https://github.com/astral-sh/uv) for dependency managemen
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/etrap-sdk.git
+git clone https://github.com/marcoeg/etrap-sdk.git
 cd etrap-sdk
 
 # Install uv if you haven't already
