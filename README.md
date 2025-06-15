@@ -904,4 +904,6 @@ print(f"Cache TTL: {config.cache_ttl} seconds")
 
 ## License
 
-This SDK is part of the ETRAP project.
+MIT
+
+Copyright (c) 2025 Graziano Labs Corp. All rights reserved.
