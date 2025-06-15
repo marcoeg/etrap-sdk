@@ -360,6 +360,10 @@ class ETRAPClient:
                             # Enhance batch info with summary data
                             batch_info.merkle_root = summary_result.get('merkle_root', batch_info.merkle_root)
                             batch_info.size_bytes = summary_result.get('size_bytes', batch_info.size_bytes)
+                            batch_info.database_name = summary_result.get('database_name', batch_info.database_name)
+                            # Update table names if provided
+                            if 'table_names' in summary_result:
+                                batch_info.table_names = summary_result.get('table_names', batch_info.table_names)
                     except:
                         pass  # Use basic info if summary not available
                     
