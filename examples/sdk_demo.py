@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
 """
-Comprehensive ETRAP Verification Tool
+ETRAP SDK Demo Tool - Comprehensive Example
 
-This example demonstrates all SDK capabilities including:
-- Transaction verification with various search strategies
-- Batch exploration and analysis
-- Contract information and statistics
-- Transaction history search
-- Merkle proof validation
-- S3 data access
+This example demonstrates ALL capabilities of the ETRAP SDK.
+For simple transaction verification, use etrap_verify_sdk.py instead.
+
+This tool is intended for:
+- Learning the SDK capabilities
+- Exploring blockchain data
+- Debugging and analysis
+- Testing SDK features
 
 Usage:
     # Verify a single transaction
-    python comprehensive_verify.py verify --data '{"id": 123, "amount": 100.50, ...}'
+    python sdk_demo.py verify --data '{"id": 123, "amount": 100.50, ...}'
     
     # Search for transactions by hash
-    python comprehensive_verify.py search --hash abc123...
+    python sdk_demo.py search --hash abc123...
     
     # List recent batches
-    python comprehensive_verify.py list-batches --limit 10
+    python sdk_demo.py list-batches --limit 10
     
     # Get contract statistics
-    python comprehensive_verify.py stats --period 7d
+    python sdk_demo.py stats --period 7d
     
     # Analyze a specific batch
-    python comprehensive_verify.py analyze-batch --batch-id BATCH-2024-01-01-abc123
+    python sdk_demo.py analyze-batch --batch-id BATCH-2024-01-01-abc123
 """
 
 import asyncio

@@ -15,12 +15,16 @@ This directory contains example scripts demonstrating how to use the ETRAP SDK f
 
 ### Verification Tools
 
-- **verify.py** - Full-featured command-line tool demonstrating all SDK capabilities
-- **etrap_verify_sdk.py** - Drop-in replacement for etrap_verify.py using the SDK
+- **etrap_verify_sdk.py** - Production-ready transaction verification tool (drop-in replacement for etrap_verify.py)
+- **sdk_demo.py** - Comprehensive SDK demonstration tool showcasing all SDK capabilities
 
-## The Verification Tool (verify.py)
+## SDK Demo Tool (sdk_demo.py)
 
-The `verify.py` script is a comprehensive command-line tool that demonstrates all capabilities of the ETRAP SDK. It provides functionality similar to the core `etrap_verify.py` tool but uses the SDK for all operations.
+The `sdk_demo.py` script is a comprehensive demonstration tool that showcases all capabilities of the ETRAP SDK. It's designed for learning, exploration, and debugging. For production transaction verification, use `etrap_verify_sdk.py` instead.
+
+**When to use which tool:**
+- **`etrap_verify_sdk.py`** - For production transaction verification, automation, and as a drop-in replacement for the original etrap_verify.py
+- **`sdk_demo.py`** - For learning the SDK, exploring blockchain data, debugging issues, and testing SDK features
 
 ### Features
 
@@ -47,16 +51,16 @@ pip install -e .
 
 ```bash
 # Verify a transaction
-python verify.py verify --data '{"id": 123, "amount": 100.50, ...}'
+python sdk_demo.py verify --data '{"id": 123, "amount": 100.50, ...}'
 
 # Search for a transaction by hash
-python verify.py search --hash abc123...
+python sdk_demo.py search --hash abc123...
 
 # List recent batches
-python verify.py list-batches --limit 10
+python sdk_demo.py list-batches --limit 10
 
 # Get contract statistics
-python verify.py stats --period 24h
+python sdk_demo.py stats --period 24h
 ```
 
 ### Command Reference
@@ -72,7 +76,7 @@ python verify.py stats --period 24h
 Verifies a single transaction against blockchain records.
 
 ```bash
-python verify.py verify --data '<JSON_DATA>' [OPTIONS]
+python sdk_demo.py verify --data '<JSON_DATA>' [OPTIONS]
 ```
 
 **Options:**
@@ -84,7 +88,7 @@ python verify.py verify --data '<JSON_DATA>' [OPTIONS]
 
 ```bash
 # Verify a financial transaction
-python verify.py verify --data '{
+python sdk_demo.py verify --data '{
   "id": 109,
   "account_id": "ACC999",
   "amount": 999.99,
@@ -116,7 +120,7 @@ python verify.py verify --data '{
 **JSON Output:**
 
 ```bash
-python verify.py --json verify --data '{"id": 109, ...}'
+python sdk_demo.py --json verify --data '{"id": 109, ...}'
 
 # Output:
 {
@@ -144,7 +148,7 @@ python verify.py --json verify --data '{"id": 109, ...}'
 Find a transaction by its hash across recent batches.
 
 ```bash
-python verify.py search --hash <TRANSACTION_HASH> [OPTIONS]
+python sdk_demo.py search --hash <TRANSACTION_HASH> [OPTIONS]
 ```
 
 **Options:**
@@ -154,7 +158,7 @@ python verify.py search --hash <TRANSACTION_HASH> [OPTIONS]
 **Example:**
 
 ```bash
-python verify.py search --hash 147236710593a5eb2f386b7fa1508bf5...
+python sdk_demo.py search --hash 147236710593a5eb2f386b7fa1508bf5...
 
 # Output:
 🔍 Searching for transaction: 147236710593a5eb2f386b7fa1508bf5...
@@ -169,7 +173,7 @@ python verify.py search --hash 147236710593a5eb2f386b7fa1508bf5...
 Display recent batches with optional filtering.
 
 ```bash
-python verify.py list-batches [OPTIONS]
+python sdk_demo.py list-batches [OPTIONS]
 ```
 
 **Options:**
@@ -182,7 +186,7 @@ python verify.py list-batches [OPTIONS]
 **Example:**
 
 ```bash
-python verify.py list-batches --limit 5 --database etrapdb
+python sdk_demo.py list-batches --limit 5 --database etrapdb
 
 # Output:
 📦 Recent Batches (showing 5 of 27)
@@ -199,7 +203,7 @@ BATCH-2025-06-14-5da8b7f9      2025-06-13 23:54:27  etrapdb   1     1.9KB
 Get detailed information about a batch including Merkle tree and S3 data.
 
 ```bash
-python verify.py analyze-batch --batch-id <BATCH_ID>
+python sdk_demo.py analyze-batch --batch-id <BATCH_ID>
 ```
 
 **Options:**
@@ -208,7 +212,7 @@ python verify.py analyze-batch --batch-id <BATCH_ID>
 **Example:**
 
 ```bash
-python verify.py analyze-batch --batch-id BATCH-2025-06-14-978b1710
+python sdk_demo.py analyze-batch --batch-id BATCH-2025-06-14-978b1710
 
 # Output:
 🔬 Analyzing batch: BATCH-2025-06-14-978b1710
@@ -237,7 +241,7 @@ python verify.py analyze-batch --batch-id BATCH-2025-06-14-978b1710
 View contract usage statistics for different time periods.
 
 ```bash
-python verify.py stats [OPTIONS]
+python sdk_demo.py stats [OPTIONS]
 ```
 
 **Options:**
@@ -246,7 +250,7 @@ python verify.py stats [OPTIONS]
 **Example:**
 
 ```bash
-python verify.py stats --period 7d
+python sdk_demo.py stats --period 7d
 
 # Output:
 📊 Contract Statistics
@@ -271,7 +275,7 @@ python verify.py stats --period 7d
 Search for batches using various criteria.
 
 ```bash
-python verify.py search-batches [OPTIONS]
+python sdk_demo.py search-batches [OPTIONS]
 ```
 
 **Options:**
@@ -284,7 +288,7 @@ python verify.py search-batches [OPTIONS]
 **Example:**
 
 ```bash
-python verify.py search-batches --start-date 2025-06-13 --end-date 2025-06-14
+python sdk_demo.py search-batches --start-date 2025-06-13 --end-date 2025-06-14
 
 # Output:
 🔍 Searching Batches
@@ -303,7 +307,7 @@ Matching Batches:
 Query historical transaction data with filters.
 
 ```bash
-python verify.py history [OPTIONS]
+python sdk_demo.py history [OPTIONS]
 ```
 
 **Options:**
@@ -315,7 +319,7 @@ python verify.py history [OPTIONS]
 **Example:**
 
 ```bash
-python verify.py history --operations INSERT --limit 10
+python sdk_demo.py history --operations INSERT --limit 10
 
 # Output:
 📜 Transaction History
@@ -339,10 +343,10 @@ Speed up verification by providing hints:
 
 ```bash
 # If you know the batch ID
-python verify.py verify --data '{"id": 123, ...}' --batch-id BATCH-2025-06-14-978b1710
+python sdk_demo.py verify --data '{"id": 123, ...}' --batch-id BATCH-2025-06-14-978b1710
 
 # If you know the table name
-python verify.py verify --data '{"id": 123, ...}' --table financial_transactions
+python sdk_demo.py verify --data '{"id": 123, ...}' --table financial_transactions
 ```
 
 #### Time Range Search Optimization
@@ -410,7 +414,7 @@ The ETRAP Verify SDK tool supports time range hints for efficient verification w
 #### Filter Batches by Date Range
 
 ```bash
-python verify.py list-batches \
+python sdk_demo.py list-batches \
   --start-date 2025-06-01 \
   --end-date 2025-06-14 \
   --database etrapdb \
@@ -420,7 +424,7 @@ python verify.py list-batches \
 #### Search for Specific Transaction Types
 
 ```bash
-python verify.py history \
+python sdk_demo.py history \
   --operations INSERT UPDATE \
   --start-time "2025-06-13T00:00:00" \
   --end-time "2025-06-14T23:59:59" \
@@ -433,13 +437,13 @@ All commands support JSON output for programmatic use:
 
 ```bash
 # Verify and get JSON result
-python verify.py --json verify --data '{"id": 123, ...}' > verification_result.json
+python sdk_demo.py --json verify --data '{"id": 123, ...}' > verification_result.json
 
 # List batches as JSON
-python verify.py --json list-batches --limit 100 > batches.json
+python sdk_demo.py --json list-batches --limit 100 > batches.json
 
 # Get stats as JSON
-python verify.py --json stats --period all > contract_stats.json
+python sdk_demo.py --json stats --period all > contract_stats.json
 ```
 
 ### Error Handling
@@ -461,7 +465,7 @@ The tool provides clear error messages:
 
 TX_DATA='{"id": 123, "amount": 100.50, ...}'
 
-if python verify.py --json verify --data "$TX_DATA" > result.json; then
+if python sdk_demo.py --json verify --data "$TX_DATA" > result.json; then
     echo "Transaction verified!"
     BATCH_ID=$(jq -r '.batch_id' result.json)
     echo "Found in batch: $BATCH_ID"
@@ -515,7 +519,7 @@ if result.returncode == 0:
 
 ### SDK Methods Demonstrated
 
-The verify.py tool showcases all major SDK capabilities:
+The sdk_demo.py tool showcases all major SDK capabilities:
 
 - `verify_transaction()` - Core verification with Merkle proofs
 - `find_transaction()` - Search by transaction hash
