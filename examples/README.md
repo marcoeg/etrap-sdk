@@ -15,7 +15,7 @@ This directory contains example scripts demonstrating how to use the ETRAP SDK f
 
 ### Verification Tools
 
-- **etrap_verify_sdk.py** - Production-ready transaction verification tool (drop-in replacement for etrap_verify.py)
+- **etrap_verify_sdk.py** - Production-ready transaction verification tool (drop-in replacement for etrap_sdk_demo.py)
 - **sdk_demo.py** - Comprehensive SDK demonstration tool showcasing all SDK capabilities
 
 ## SDK Demo Tool (sdk_demo.py)
@@ -23,7 +23,7 @@ This directory contains example scripts demonstrating how to use the ETRAP SDK f
 The `sdk_demo.py` script is a comprehensive demonstration tool that showcases all capabilities of the ETRAP SDK. It's designed for learning, exploration, and debugging. For production transaction verification, use `etrap_verify_sdk.py` instead.
 
 **When to use which tool:**
-- **`etrap_verify_sdk.py`** - For production transaction verification, automation, and as a drop-in replacement for the original etrap_verify.py
+- **`etrap_verify_sdk.py`** - For production transaction verification, automation, and as a drop-in replacement for the original etrap_sdk_demo.py
 - **`sdk_demo.py`** - For learning the SDK, exploring blockchain data, debugging issues, and testing SDK features
 
 ### Features
@@ -483,7 +483,7 @@ import json
 
 # Run verification
 result = subprocess.run([
-    'python', 'verify.py', '--json', 'verify',
+    'python', 'sdk_demo.py', '--json', 'verify',
     '--data', json.dumps(transaction_data)
 ], capture_output=True, text=True)
 
@@ -533,7 +533,7 @@ The sdk_demo.py tool showcases all major SDK capabilities:
 
 ## ETRAP Verify SDK Tool (etrap_verify_sdk.py)
 
-A complete clone of the original `etrap_verify.py` tool that uses the ETRAP SDK for all operations. This tool provides identical functionality with a cleaner interface using organization IDs instead of contract IDs.
+A complete clone of the original `etrap_sdk_demo.py` tool that uses the ETRAP SDK for all operations. This tool provides identical functionality with a cleaner interface using organization IDs instead of contract IDs.
 
 ### Key Differences from Original
 
@@ -645,7 +645,7 @@ or
 - `0` - Transaction verified successfully
 - `1` - Verification failed or error occurred
 
-### Migration from etrap_verify.py
+### Migration from etrap_sdk_demo.py
 
 To migrate from the original tool:
 
@@ -656,7 +656,7 @@ To migrate from the original tool:
 Example migration:
 ```bash
 # Old:
-etrap_verify.py -c acme.testnet --data '{...}'
+etrap_sdk_demo.py -c acme.testnet --data '{...}'
 
 # New:
 etrap_verify_sdk.py -o acme --data '{...}'
@@ -747,11 +747,11 @@ python list_batches.py -o acme
 
 #### Step 3: Compare with Original Tool
 
-If you have access to the original `etrap_verify.py`, compare results:
+If you have access to the original `etrap_sdk_demo.py`, compare results:
 
 ```bash
 # Original tool
-python3 /path/to/etrap_verify.py -c acme.testnet --data '{"id":109,...}'
+python3 /path/to/etrap_sdk_demo.py -c acme.testnet --data '{"id":109,...}'
 
 # SDK tool
 python etrap_verify_sdk.py -o acme --data '{"id":109,...}'
@@ -855,7 +855,7 @@ $ python list_batches.py -o acme | grep 978b1710
    Merkle root: 147236710593a5eb2f386b7fa1508bf563a11b73b3d580219db2b59c2e135fc8
 
 # 4. Hashes don't match! Check with original tool
-$ python3 /path/to/etrap_verify.py -c acme.testnet --data '{"id":109,...}'
+$ python3 /path/to/etrap_sdk_demo.py -c acme.testnet --data '{"id":109,...}'
 📊 Transaction Hash: 147236710593a5eb2f386b7fa1508bf5...
 ✅ TRANSACTION VERIFIED
 
