@@ -127,7 +127,8 @@ class ETRAPClient:
         self,
         transaction_data: Dict[str, Any],
         hints: Optional[VerificationHints] = None,
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
+        use_contract_verification: bool = False
     ) -> VerificationResult:
         """
         Verify a single transaction.
@@ -136,6 +137,7 @@ class ETRAPClient:
             transaction_data: Transaction to verify
             hints: Optimization hints for faster verification
             timeout: Override default timeout
+            use_contract_verification: If True, use smart contract for verification
             
         Returns:
             VerificationResult with verification status and proof
@@ -161,7 +163,7 @@ class ETRAPClient:
                 logger.debug(f"Using batch hint: {hints.batch_id}")
                 batch = await self.get_batch(hints.batch_id)
                 if batch:
-                    result = await self._verify_in_batch(tx_hash, batch)
+                    result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
                     if result:
                         return result
                     # If not in the specified batch, don't search further
@@ -182,7 +184,7 @@ class ETRAPClient:
                 )
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
                         if result:
                             return result
                     except VerificationError:
@@ -202,7 +204,7 @@ class ETRAPClient:
                 batches = await self._get_batches_by_database(hints.database_name, limit=100)
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
                         if result:
                             return result
                     except VerificationError:
@@ -215,7 +217,7 @@ class ETRAPClient:
                 batches = await self._get_batches_by_table(hints.table_name, limit=50)
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
                         if result:
                             return result
                     except VerificationError:
@@ -228,7 +230,7 @@ class ETRAPClient:
                 recent_batches = await self._get_recent_batches(100)
                 for batch in recent_batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
                         if result:
                             return result
                     except VerificationError:
@@ -510,7 +512,7 @@ class ETRAPClient:
             for batch in all_batches:
                 # Check transaction hash
                 if criteria.transaction_hash:
-                    result = await self._verify_in_batch(criteria.transaction_hash, batch)
+                    result = await self._verify_in_batch(criteria.transaction_hash, batch, False)
                     if result and result.verified:
                         matching_batches.append(batch)
                         continue
@@ -683,12 +685,25 @@ class ETRAPClient:
         
         proof_data = proof_index[tx_key]
         
+        # Get total transaction count to handle edge cases
+        total_transactions = len(batch_json.get('transactions', []))
+        
+        # Validate the proof
+        is_valid = self._validate_merkle_proof_with_context(
+            transaction_hash,
+            proof_data.get('proof_path', []),
+            proof_data.get('sibling_positions', []),
+            merkle_tree.get('root', ''),
+            transaction_index,
+            total_transactions
+        )
+        
         return MerkleProof(
             leaf_hash=transaction_hash,
             proof_path=proof_data.get('proof_path', []),
             sibling_positions=proof_data.get('sibling_positions', []),
             merkle_root=merkle_tree.get('root', ''),
-            is_valid=True  # Will be validated when used
+            is_valid=is_valid
         )
     
     async def find_transaction(
@@ -721,7 +736,7 @@ class ETRAPClient:
         # Search each batch
         for batch in batches:
             # Check if transaction might be in this batch (optimization)
-            result = await self._verify_in_batch(transaction_hash, batch)
+            result = await self._verify_in_batch(transaction_hash, batch, False)
             if result and result.verified:
                 # Get position in batch
                 cache_key = f"batch_data_{batch.batch_id}"
@@ -1043,7 +1058,48 @@ class ETRAPClient:
     
     # Private helper methods
     
-    async def _verify_in_batch(self, tx_hash: str, batch: BatchInfo) -> Optional[VerificationResult]:
+    async def _verify_document_in_batch_contract(
+        self,
+        token_id: str,
+        document_hash: str,
+        merkle_proof: List[str],
+        leaf_index: int
+    ) -> bool:
+        """
+        Call smart contract's verify_document_in_batch method.
+        
+        Args:
+            token_id: NFT token ID (batch ID)
+            document_hash: Hash of the document/transaction
+            merkle_proof: List of sibling hashes in the proof path
+            leaf_index: Index of the leaf in the merkle tree
+            
+        Returns:
+            True if verification succeeds
+        """
+        try:
+            result = await self.near_account.view_function(
+                self.contract_id,
+                "verify_document_in_batch",
+                {
+                    "token_id": token_id,
+                    "document_hash": document_hash,
+                    "merkle_proof": merkle_proof,
+                    "leaf_index": leaf_index
+                }
+            )
+            
+            # Handle ViewFunctionResult object
+            if hasattr(result, 'result'):
+                result = result.result
+                
+            return bool(result)
+            
+        except Exception as e:
+            logger.error(f"Contract verification failed: {e}")
+            return False
+    
+    async def _verify_in_batch(self, tx_hash: str, batch: BatchInfo, use_contract_verification: bool = False) -> Optional[VerificationResult]:
         """Verify if transaction exists in a specific batch."""
         try:
             # First check if this is a single-transaction batch where tx_hash == merkle_root
@@ -1088,8 +1144,21 @@ class ETRAPClient:
                     # Get Merkle proof
                     merkle_proof = await self.get_merkle_proof(batch.batch_id, tx_hash)
                     
+                    # Determine verification status
+                    if use_contract_verification and merkle_proof:
+                        # Use smart contract for verification
+                        verified = await self._verify_document_in_batch_contract(
+                            token_id=batch.batch_id,
+                            document_hash=tx_hash,
+                            merkle_proof=merkle_proof.proof_path,
+                            leaf_index=tx_index
+                        )
+                    else:
+                        # Use local verification
+                        verified = merkle_proof.is_valid if merkle_proof else False
+                    
                     return VerificationResult(
-                        verified=True,
+                        verified=verified,
                         transaction_hash=tx_hash,
                         batch_id=batch.batch_id,
                         merkle_proof=merkle_proof,
@@ -1422,3 +1491,53 @@ class ETRAPClient:
         except Exception as e:
             logger.error(f"Error parsing batch info: {e}")
             return None
+    
+    def _validate_merkle_proof_with_context(
+        self,
+        leaf_hash: str,
+        proof_path: list,
+        sibling_positions: list,
+        root: str,
+        leaf_index: int,
+        total_leaves: int
+    ) -> bool:
+        """
+        Validate a merkle proof with context about the tree structure.
+        
+        This handles the edge case where the last leaf in an odd-numbered
+        set needs to be duplicated before applying the proof path.
+        
+        Supports both position-based (with sibling_positions) and index-based
+        verification for backward compatibility during migration.
+        """
+        current_hash = leaf_hash
+        
+        # Check if we have sibling_positions (old format)
+        if sibling_positions and len(sibling_positions) > 0:
+            # Use position-based verification for backward compatibility
+            from .utils import validate_merkle_proof
+            
+            # For position-based, we still need to handle the odd leaf edge case
+            if total_leaves % 2 == 1 and leaf_index == total_leaves - 1:
+                # This leaf has no sibling, so it's hashed with itself
+                # This creates the parent node that will be used in the proof
+                current_hash = hashlib.sha256((current_hash + current_hash).encode()).hexdigest()
+            
+            return validate_merkle_proof(current_hash, proof_path, sibling_positions, root)
+        else:
+            # Use index-based verification for new format (matches smart contract)
+            
+            # Check if this leaf needs duplication (last leaf in odd-numbered set)
+            if total_leaves % 2 == 1 and leaf_index == total_leaves - 1:
+                # This leaf has no sibling, so it's hashed with itself
+                current_hash = hashlib.sha256((current_hash + current_hash).encode()).hexdigest()
+                # After duplication, we're at the parent level
+                # The duplicated node becomes the right child (index 1) at the parent level
+                # when there are 3 leaves, since (0,1) merge to index 0, (2,2) merge to index 1
+                current_index = 1
+            else:
+                current_index = leaf_index
+            
+            # Now apply the standard proof path using index-based positioning
+            from .utils import validate_merkle_proof_indexed
+            return validate_merkle_proof_indexed(current_hash, proof_path, current_index, root)

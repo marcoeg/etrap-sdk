@@ -66,6 +66,13 @@ def print_verification_result(
     # Transaction hash
     tx_hash = result['transaction_hash']
     print(f"📊 Transaction Hash: {tx_hash}")
+    
+    # Verification method
+    verification_method = result.get('verification_method', 'local')
+    if verification_method == 'smart_contract':
+        print(f"🔗 Verification Method: Smart Contract (on-chain)")
+    else:
+        print(f"💻 Verification Method: Local (off-chain)")
     print()
     
     if verified:
@@ -179,7 +186,8 @@ def print_verification_result(
 async def verify_transaction(
     client: ETRAPClient,
     transaction_data: Dict[str, Any],
-    hints: Optional[Dict[str, Any]] = None
+    hints: Optional[Dict[str, Any]] = None,
+    use_contract_verification: bool = False
 ) -> Dict[str, Any]:
     """Verify a transaction using the SDK."""
     # Track search statistics
@@ -226,7 +234,8 @@ async def verify_transaction(
     # Perform verification
     result = await client.verify_transaction(
         transaction_data,
-        hints=verification_hints
+        hints=verification_hints,
+        use_contract_verification=use_contract_verification
     )
     
     # Convert to dictionary format
@@ -236,7 +245,8 @@ async def verify_transaction(
         'batch_id': result.batch_id,
         'blockchain_timestamp': result.blockchain_timestamp,
         'error': result.error,
-        'search_info': search_info
+        'search_info': search_info,
+        'verification_method': 'smart_contract' if use_contract_verification else 'local'
     }
     
     if result.merkle_proof:
@@ -321,6 +331,9 @@ Examples:
   %(prog)s -o acme --data-file tx.json --hint-batch BATCH-2025-06-14-abc123
   %(prog)s -o acme --data-file tx.json --hint-database etrapdb
   %(prog)s -o acme --data-file tx.json --hint-time-start 2025-06-14 --hint-time-end 2025-06-14
+  
+  # Use smart contract verification
+  %(prog)s -o acme --data-file tx.json --use-contract
         """
     )
     
@@ -386,6 +399,11 @@ Examples:
         action='store_true',
         help='Minimal output (just verification status)'
     )
+    parser.add_argument(
+        '--use-contract',
+        action='store_true',
+        help='Use smart contract for verification instead of local verification'
+    )
     
     args = parser.parse_args()
     
@@ -448,7 +466,8 @@ Examples:
         transaction_data=transaction_data,
         hints=hints,
         json_output=args.json,
-        quiet=args.quiet
+        quiet=args.quiet,
+        use_contract=args.use_contract
     ))
 
 
@@ -458,7 +477,8 @@ async def verify_with_sdk(
     transaction_data: Dict[str, Any],
     hints: Optional[Dict[str, Any]] = None,
     json_output: bool = False,
-    quiet: bool = False
+    quiet: bool = False,
+    use_contract: bool = False
 ) -> int:
     """Perform verification using the SDK."""
     # Initialize client
@@ -470,7 +490,7 @@ async def verify_with_sdk(
     
     try:
         # Verify transaction
-        result = await verify_transaction(client, transaction_data, hints)
+        result = await verify_transaction(client, transaction_data, hints, use_contract)
         
         if json_output:
             # JSON output

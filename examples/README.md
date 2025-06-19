@@ -564,6 +564,9 @@ echo '{"id":123,...}' | ./etrap_verify_sdk.py -o acme --data -
 
 # Quiet mode (minimal output)
 ./etrap_verify_sdk.py -o acme --data '{...}' --quiet
+
+# Use smart contract verification
+./etrap_verify_sdk.py -o acme --data-file tx.json --use-contract
 ```
 
 ### Command-Line Options
@@ -580,29 +583,46 @@ echo '{"id":123,...}' | ./etrap_verify_sdk.py -o acme --data -
 - `-n, --network` - NEAR network: testnet, mainnet, or localnet (default: testnet)
 - `--json` - Output result as JSON
 - `-q, --quiet` - Minimal output (just verification status)
+- `--use-contract` - Use smart contract for verification instead of local verification
 
 ### Output Formats
 
 #### Standard Output
 
 ```
-🔐 ETRAP Transaction Verification
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Organization: acme
+🔐 ETRAP Transaction Verification Tool
    Contract: acme.testnet
    Network: testnet
 
-📊 Transaction Summary:
-   ID: 123 | Account: ACC500 | Amount: $10,000.00
-   Hash: 8684c656d2addf8a0c5040ba3863c0fb...
+🔍 ETRAP Transaction Verification
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Transaction Hash: 8684c656d2addf8a0c5040ba3863c0fb...
+💻 Verification Method: Local (off-chain)
 
 ✅ TRANSACTION VERIFIED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Batch ID: BATCH-2025-06-14-abc123
-   Blockchain Time: 2025-06-14 12:34:56
-   Merkle Root: def456...
+
+📄 Transaction Details:
+   Hash: 8684c656d2addf8a0c5040ba3863c0fb...
    Database: production
-   Table(s): financial_transactions
+   Table: financial_transactions
+
+🔗 Blockchain Record:
+   NFT Token ID: BATCH-2025-06-14-abc123
+   Contract: acme.testnet
+   Network: testnet
+   Merkle Root: def456...
+
+⏰ Recorded on Blockchain:
+   2025-06-14 12:34:56 UTC
+   This is the official timestamp when this batch was
+   permanently recorded on the NEAR blockchain.
+```
+
+When using `--use-contract`, the verification method shows:
+```
+🔗 Verification Method: Smart Contract (on-chain)
 ```
 
 #### JSON Output
@@ -613,9 +633,17 @@ echo '{"id":123,...}' | ./etrap_verify_sdk.py -o acme --data -
   "transaction_hash": "8684c656d2addf8a0c5040ba3863c0fb...",
   "batch_id": "BATCH-2025-06-14-abc123",
   "blockchain_timestamp": "2025-06-14 12:34:56",
+  "error": null,
+  "search_info": {
+    "total_batches": 29,
+    "batch_position": 3,
+    "direct_lookup": false
+  },
+  "verification_method": "local",
   "merkle_proof": {
     "leaf_hash": "8684c656d2addf8a0c5040ba3863c0fb...",
     "proof_path": [...],
+    "sibling_positions": ["left", "right"],
     "merkle_root": "def456...",
     "is_valid": true
   },
@@ -624,7 +652,9 @@ echo '{"id":123,...}' | ./etrap_verify_sdk.py -o acme --data -
     "tables": ["financial_transactions"],
     "transaction_count": 100,
     "timestamp": "2025-06-14 12:34:56"
-  }
+  },
+  "operation_type": "INSERT",
+  "position": 0
 }
 ```
 
@@ -644,6 +674,35 @@ or
 
 - `0` - Transaction verified successfully
 - `1` - Verification failed or error occurred
+
+### Verification Methods
+
+The tool supports two verification methods:
+
+1. **Local Verification (default)**: 
+   - Downloads merkle proof data from S3
+   - Verifies the proof locally against the blockchain's merkle root
+   - Faster and more efficient
+   - Shown as: `💻 Verification Method: Local (off-chain)`
+
+2. **Smart Contract Verification** (with `--use-contract`):
+   - Calls the NEAR smart contract's `verify_document_in_batch` method
+   - Performs verification entirely on-chain
+   - Provides stronger guarantee but slower
+   - Shown as: `🔗 Verification Method: Smart Contract (on-chain)`
+
+Example using smart contract verification:
+```bash
+# Basic smart contract verification
+./etrap_verify_sdk.py -o acme --data-file tx.json --use-contract
+
+# With batch hint for direct lookup
+./etrap_verify_sdk.py -o acme --data-file tx.json --hint-batch BATCH-2025-06-14-abc123 --use-contract
+
+# JSON output shows verification method
+./etrap_verify_sdk.py -o acme --data-file tx.json --use-contract --json | jq .verification_method
+# Output: "smart_contract"
+```
 
 ### Migration from etrap_sdk_demo.py
 

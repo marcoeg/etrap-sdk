@@ -109,6 +109,36 @@ def validate_merkle_proof(leaf_hash: str, proof_path: list, sibling_positions: l
     return current_hash == root
 
 
+def validate_merkle_proof_indexed(leaf_hash: str, proof_path: list, leaf_index: int, root: str) -> bool:
+    """
+    Validate a Merkle proof using index-based positioning (matches smart contract).
+    
+    Args:
+        leaf_hash: Hash of the transaction
+        proof_path: List of sibling hashes
+        leaf_index: Index of the leaf in the tree
+        root: Expected Merkle root
+        
+    Returns:
+        True if the proof is valid
+    """
+    current_hash = leaf_hash
+    current_index = leaf_index
+    
+    for sibling_hash in proof_path:
+        if current_index % 2 == 0:
+            # Current node is left child
+            combined = current_hash + sibling_hash
+        else:
+            # Current node is right child
+            combined = sibling_hash + current_hash
+        
+        current_hash = hashlib.sha256(combined.encode()).hexdigest()
+        current_index = current_index // 2
+    
+    return current_hash == root
+
+
 def parse_timestamp(timestamp: Any) -> Optional[datetime]:
     """
     Parse various timestamp formats.
