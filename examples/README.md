@@ -585,6 +585,16 @@ echo '{"id":123,...}' | ./etrap_verify_sdk.py -o acme --data -
 - `-q, --quiet` - Minimal output (just verification status)
 - `--use-contract` - Use smart contract for verification instead of local verification
 
+
+### Use contract vs. local verification with data from S3
+Comparison:
+
+  - Local verification (default): Downloads data from S3, verifies locally
+  - Smart contract verification (--use-contract): Calls view function on RPC node at cost zero gas
+
+  Both are free, but smart contract verification provides stronger assurance that the verification logic
+  matches exactly what's deployed on-chain.
+
 ### Output Formats
 
 #### Standard Output
