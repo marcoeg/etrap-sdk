@@ -8,11 +8,12 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "py-near>=1.0.0",
+    "py-near==1.1.52",  # Pin to stable version - 1.1.57+ has broken dependencies
     "boto3>=1.26.0",
     "pydantic>=2.0.0",
     "python-dateutil>=2.8.0",
     "typing-extensions>=4.5.0",
+    # Remove unnecessary dependencies that py-near 1.1.52 brings in automatically
 ]
 
 [build-system]

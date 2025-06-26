@@ -49,13 +49,36 @@ cd etrap-sdk
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Set Python version (if using pyenv)
+pyenv install 3.11
+pyenv local 3.11
+
 # Create virtual environment and install dependencies
-uv venv
+rm -rf .venv  # Remove existing venv if any
+uv sync       # Creates .venv and installs all dependencies
+uv pip install -e .  # Install SDK in editable mode
+
+# Run examples (use 'uv run' to automatically use the virtual environment)
+cd examples
+uv run python list_batches.py
+uv run python basic_usage.py
+
+# Or activate the virtual environment manually
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -e .
+python list_batches.py
+deactivate  # When done
 
 # Run tests
 uv run pytest
+
+# Type checking
+uv run mypy etrap_sdk
+
+# Linting
+uv run ruff check .
+
+# Format code
+uv run black .
 
 # Build the package
 uv build
@@ -75,7 +98,39 @@ uv lock --upgrade
 
 # Install from lock file
 uv sync
+
+# Run any Python command with uv (automatically uses virtual environment)
+uv run python your_script.py
+uv run pytest
+uv run mypy etrap_sdk
 ```
+
+### Important: Using the Virtual Environment
+
+When working with the ETRAP SDK, always ensure you're using the correct Python environment:
+
+**Option 1: Use `uv run` (Recommended)**
+```bash
+# This automatically uses the virtual environment
+uv run python examples/list_batches.py
+```
+
+**Option 2: Activate the virtual environment**
+```bash
+source .venv/bin/activate  # On Linux/Mac
+# or
+.venv\Scripts\activate     # On Windows
+
+python examples/list_batches.py
+deactivate  # When done
+```
+
+**Option 3: Use the virtual environment Python directly**
+```bash
+.venv/bin/python examples/list_batches.py
+```
+
+**Common Issue**: If you get `ModuleNotFoundError: No module named 'etrap_sdk'`, you're likely using the global Python instead of the virtual environment Python.
 
 ## Environment Variables
 
