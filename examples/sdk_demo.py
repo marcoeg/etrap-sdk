@@ -32,8 +32,13 @@ import asyncio
 import argparse
 import json
 import sys
+import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+
+# Add parent directory to path to import etrap_sdk
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(parent_dir, 'src'))
 
 from etrap_sdk import (
     ETRAPClient, S3Config, VerificationHints,
@@ -538,8 +543,8 @@ async def main():
     
     parser.add_argument(
         '-o', '--organization',
-        default='acme',
-        help='Organization ID (default: acme)'
+        required=True,
+        help='Organization ID (required)'
     )
     
     parser.add_argument(
@@ -585,8 +590,8 @@ async def main():
     search_parser.add_argument(
         '--depth',
         type=int,
-        default=500,
-        help='Number of batches to search (default: 500)'
+        default=100,
+        help='Number of batches to search (default: 100, max: 100 due to contract limit)'
     )
     
     # List batches command

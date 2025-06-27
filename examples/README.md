@@ -51,7 +51,7 @@ pip install -e .
 
 ```bash
 # Verify a transaction
-python sdk_demo.py verify --data '{"id": 123, "amount": 100.50, ...}'
+uv run examples/sdk_demo.py --organization lunaris verify  --data '{"id": 132, "account_id": "ACC7777", "amount": 1007.07, "type": "D", "created_at": "2025-06-26 12:47:07", "reference": "BATCH-TEST-77"}'
 
 # Search for a transaction by hash
 python sdk_demo.py search --hash abc123...

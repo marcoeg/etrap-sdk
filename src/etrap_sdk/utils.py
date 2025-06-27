@@ -24,12 +24,33 @@ def normalize_transaction_data(transaction_data: Dict[str, Any]) -> Dict[str, An
     """
     normalized = transaction_data.copy()
     
-    # Normalize numeric amounts to strings (but NOT id field)
-    # Only normalize fields that represent monetary values or counts
-    # Keep id fields as integers to match original etrap_verify.py behavior
-    for field in ['amount', 'balance', 'total', 'price', 'cost', 'value']:
-        if field in normalized and isinstance(normalized[field], (int, float)):
-            normalized[field] = str(normalized[field])
+    # Auto-detect numeric fields and normalize based on type and field name
+    # ID fields remain as integers, other numeric fields become strings
+    for field, value in list(normalized.items()):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if field == 'id' or field.endswith('_id'):
+                # Keep ID fields as integers (primary/foreign keys)
+                normalized[field] = value
+            else:
+                # Convert other numeric fields to strings with database-compatible precision
+                if isinstance(value, float):
+                    # For floats, preserve decimal precision to match CDC agent behavior
+                    # Check if it's a whole number or has decimals
+                    if value == int(value):
+                        # Whole number float (e.g., 1000.0) - preserve as .00 for database compatibility
+                        normalized[field] = f"{int(value):.2f}"
+                    else:
+                        # Has decimal places - preserve them with appropriate formatting
+                        # Use minimal decimal places but ensure at least 2 for monetary values
+                        decimal_str = f"{value:.10f}".rstrip('0')
+                        if decimal_str.endswith('.'):
+                            decimal_str += '00'
+                        elif '.' in decimal_str and len(decimal_str.split('.')[1]) == 1:
+                            decimal_str += '0'
+                        normalized[field] = decimal_str
+                else:
+                    # For integers, convert directly to string
+                    normalized[field] = str(value)
     
     # Normalize timestamps
     for field, value in list(normalized.items()):

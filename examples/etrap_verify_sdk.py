@@ -318,29 +318,29 @@ def main():
         epilog="""
 Examples:
   # Verify a transaction from JSON string
-  %(prog)s -o acme --data '{"id":123,"account_id":"ACC500","amount":10000}'
+  %(prog)s -o myorg --data '{"id":123,"account_id":"ACC500","amount":10000}'
   
   # Verify from a file
-  %(prog)s -o acme --data-file transaction.json
+  %(prog)s -o myorg --data-file transaction.json
   
   # Verify from stdin
-  echo '{"id":123,...}' | %(prog)s -o acme --data -
+  echo '{"id":123,...}' | %(prog)s -o myorg --data -
   
   # Provide hints for faster search
-  %(prog)s -o acme --data-file tx.json --hint-table financial_transactions
-  %(prog)s -o acme --data-file tx.json --hint-batch BATCH-2025-06-14-abc123
-  %(prog)s -o acme --data-file tx.json --hint-database etrapdb
-  %(prog)s -o acme --data-file tx.json --hint-time-start 2025-06-14 --hint-time-end 2025-06-14
+  %(prog)s -o myorg --data-file tx.json --hint-table financial_transactions
+  %(prog)s -o myorg --data-file tx.json --hint-batch BATCH-2025-06-14-abc123
+  %(prog)s -o myorg --data-file tx.json --hint-database etrapdb
+  %(prog)s -o myorg --data-file tx.json --hint-time-start 2025-06-14 --hint-time-end 2025-06-14
   
   # Use smart contract verification
-  %(prog)s -o acme --data-file tx.json --use-contract
+  %(prog)s -o myorg --data-file tx.json --use-contract
         """
     )
     
     # Organization/contract arguments (at least one required)
     parser.add_argument(
         '-o', '--organization',
-        help='Organization ID (e.g., acme)'
+        help='Organization ID (required)'
     )
     
     # For backward compatibility, also accept --contract
