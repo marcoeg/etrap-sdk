@@ -36,6 +36,7 @@ class VerificationHints(BaseModel):
     table_name: Optional[str] = None
     database_name: Optional[str] = None
     time_range: Optional[TimeRange] = None
+    expected_operation: Optional[str] = Field(None, pattern=r"^(INSERT|UPDATE|DELETE)$")
 
 
 class MerkleProof(BaseModel):

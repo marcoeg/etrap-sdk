@@ -164,7 +164,7 @@ class ETRAPClient:
                 logger.debug(f"Using batch hint: {hints.batch_id}")
                 batch = await self.get_batch(hints.batch_id)
                 if batch:
-                    result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
+                    result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
                     if result:
                         return result
                     # If not in the specified batch, don't search further
@@ -185,7 +185,7 @@ class ETRAPClient:
                 )
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
                         if result:
                             return result
                     except VerificationError:
@@ -205,7 +205,7 @@ class ETRAPClient:
                 batches = await self._get_batches_by_database(hints.database_name, limit=100)
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
                         if result:
                             return result
                     except VerificationError:
@@ -218,7 +218,7 @@ class ETRAPClient:
                 batches = await self._get_batches_by_table(hints.table_name, limit=50)
                 for batch in batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
                         if result:
                             return result
                     except VerificationError:
@@ -231,7 +231,7 @@ class ETRAPClient:
                 recent_batches = await self._get_recent_batches(100)
                 for batch in recent_batches:
                     try:
-                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification)
+                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
                         if result:
                             return result
                     except VerificationError:
@@ -1119,7 +1119,7 @@ class ETRAPClient:
             logger.error(f"Contract verification failed: {e}")
             return False
     
-    async def _verify_in_batch(self, tx_hash: str, batch: BatchInfo, use_contract_verification: bool = False) -> Optional[VerificationResult]:
+    async def _verify_in_batch(self, tx_hash: str, batch: BatchInfo, use_contract_verification: bool = False, expected_operation: Optional[str] = None) -> Optional[VerificationResult]:
         """Verify if transaction exists in a specific batch."""
         try:
             # First check if this is a single-transaction batch where tx_hash == merkle_root
@@ -1157,7 +1157,13 @@ class ETRAPClient:
             
             for tx in batch_json.get('transactions', []):
                 if tx.get('metadata', {}).get('hash') == tx_hash:
-                    # Found the transaction
+                    # Check operation type if expected_operation is specified
+                    tx_operation = tx.get('metadata', {}).get('operation_type', 'INSERT')
+                    if expected_operation and tx_operation != expected_operation:
+                        # Hash matches but operation type doesn't - continue searching
+                        continue
+                    
+                    # Found the transaction with matching hash and operation type
                     tx_id = tx['metadata']['transaction_id']
                     tx_index = int(tx_id.split('-')[-1])
                     

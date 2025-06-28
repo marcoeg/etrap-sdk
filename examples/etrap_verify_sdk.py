@@ -210,7 +210,8 @@ async def verify_transaction(
             batch_id=hints.get('batch_id'),
             table_name=hints.get('table'),
             database_name=hints.get('database'),
-            time_range=time_range
+            time_range=time_range,
+            expected_operation=hints.get('expected_operation')
         )
     
     # Track if we're using direct batch lookup
@@ -404,6 +405,11 @@ Examples:
         action='store_true',
         help='Use smart contract for verification instead of local verification'
     )
+    parser.add_argument(
+        '--operation',
+        choices=['INSERT', 'UPDATE', 'DELETE'],
+        help='Expected operation type (for disambiguating hash collisions)'
+    )
     
     args = parser.parse_args()
     
@@ -432,6 +438,8 @@ Examples:
         hints['batch_id'] = args.hint_batch
     if args.hint_database:
         hints['database'] = args.hint_database
+    if args.operation:
+        hints['expected_operation'] = args.operation
     
     # Parse time range hints
     if args.hint_time_start and args.hint_time_end:

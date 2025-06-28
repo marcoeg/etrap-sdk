@@ -92,7 +92,8 @@ class ComprehensiveVerifier:
                 batch_id=hints.get('batch_id'),
                 table_name=hints.get('table'),
                 database_name=hints.get('database'),
-                timestamp_hint=parse_timestamp(hints.get('timestamp')) if hints.get('timestamp') else None
+                timestamp_hint=parse_timestamp(hints.get('timestamp')) if hints.get('timestamp') else None,
+                expected_operation=hints.get('expected_operation')
             )
         
         # Perform verification
@@ -579,6 +580,11 @@ async def main():
         '--table',
         help='Table name hint'
     )
+    verify_parser.add_argument(
+        '--operation',
+        choices=['INSERT', 'UPDATE', 'DELETE'],
+        help='Expected operation type (for disambiguating hash collisions)'
+    )
     
     # Search command
     search_parser = subparsers.add_parser('search', help='Search for a transaction by hash')
@@ -710,6 +716,8 @@ async def main():
                 hints['batch_id'] = args.batch_id
             if args.table:
                 hints['table'] = args.table
+            if args.operation:
+                hints['expected_operation'] = args.operation
             
             # Verify
             result = await verifier.verify_transaction(
