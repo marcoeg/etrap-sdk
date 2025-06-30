@@ -10,15 +10,23 @@ from etrap_sdk import ETRAPClient
 
 
 async def main():
+    if len(sys.argv) < 3:
+        print("Usage: debug_batch.py <batch_id> <organization_id>")
+        print("Example: debug_batch.py BATCH-2025-06-28-1107c8e1 lunaris")
+        sys.exit(1)
+    
+    batch_id = sys.argv[1]
+    organization_id = sys.argv[2]
+    
     # Initialize client
     client = ETRAPClient(
-        organization_id="acme",
+        organization_id=organization_id,
         network="testnet"
     )
     
-    batch_id = sys.argv[1] if len(sys.argv) > 1 else "BATCH-2025-06-14-b6d61bf9"
-    
-    print(f"Fetching batch: {batch_id}\n")
+    print(f"Fetching batch: {batch_id}")
+    print(f"Organization: {organization_id}")
+    print(f"Contract: {organization_id}.testnet\n")
     
     try:
         # Get raw response from NEAR
