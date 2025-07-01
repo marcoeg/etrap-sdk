@@ -1126,6 +1126,40 @@ class ETRAPClient:
             # This allows verification without S3 access
             if batch.merkle_root and tx_hash == batch.merkle_root:
                 logger.debug(f"Transaction hash matches merkle root in batch {batch.batch_id}")
+                
+                # If expected_operation is specified, we need to verify the operation type
+                # even for single-transaction batches
+                verified_operation_type = None
+                if expected_operation:
+                    logger.debug(f"Expected operation specified: {expected_operation}, checking S3 data for operation type")
+                    # Need to get batch data to check operation type
+                    batch_data = await self.get_batch_data(
+                        batch.batch_id,
+                        include_merkle_tree=False,
+                        include_indices=False
+                    )
+                    
+                    if batch_data:
+                        # Check operation type in batch data
+                        cache_key = f"batch_data_{batch.batch_id}"
+                        batch_json = self._cache.get(cache_key, {})
+                        
+                        for tx in batch_json.get('transactions', []):
+                            if tx.get('metadata', {}).get('hash') == tx_hash:
+                                tx_operation = tx.get('metadata', {}).get('operation_type', 'INSERT')
+                                if tx_operation != expected_operation:
+                                    logger.debug(f"Operation type mismatch: found {tx_operation}, expected {expected_operation}")
+                                    return None  # Hash matches but operation type doesn't
+                                verified_operation_type = tx_operation
+                                break
+                        else:
+                            # Transaction not found in batch data (shouldn't happen)
+                            logger.warning(f"Transaction {tx_hash} not found in batch data for {batch.batch_id}")
+                    else:
+                        # Can't verify operation type without batch data
+                        logger.warning(f"Cannot verify operation type for batch {batch.batch_id} - no S3 data available")
+                        # In this case, we'll proceed with verification but note the limitation
+                
                 return VerificationResult(
                     verified=True,
                     transaction_hash=tx_hash,
@@ -1138,7 +1172,8 @@ class ETRAPClient:
                         is_valid=True
                     ),
                     blockchain_timestamp=batch.timestamp,
-                    gas_used=None
+                    gas_used=None,
+                    operation_type=verified_operation_type
                 )
             
             # Otherwise, try to get batch data from S3 for full verification
@@ -1204,7 +1239,8 @@ class ETRAPClient:
                         batch_id=batch.batch_id,
                         merkle_proof=merkle_proof,
                         blockchain_timestamp=batch.timestamp,
-                        gas_used=None  # Could be extracted from batch metadata
+                        gas_used=None,  # Could be extracted from batch metadata
+                        operation_type=tx_operation
                     )
             
             return None

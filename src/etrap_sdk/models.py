@@ -57,6 +57,7 @@ class VerificationResult(BaseModel):
     blockchain_timestamp: Optional[datetime] = None
     gas_used: Optional[str] = None
     error: Optional[str] = None
+    operation_type: Optional[str] = None
 
 
 class VerificationSummary(BaseModel):
