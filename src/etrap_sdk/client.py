@@ -207,7 +207,7 @@ class ETRAPClient:
                     pass
                 else:
                     # Time range was the only hint - fall back to recent batches as safety net
-                    # This handles cases where contract time range method is incomplete/buggy
+                    # This handles cases where network issues prevent the contract query from completing
                     logger.debug("Time range search incomplete, falling back to recent batches search")
                     recent_batches = await self._get_recent_batches(100)
                     
@@ -1440,9 +1440,9 @@ class ETRAPClient:
         database: Optional[str] = None,
         limit: int = 100
     ) -> List[BatchInfo]:
-        """Get batches within a time range."""
+        """Get batches created on blockchain within a time range (blockchain creation time, not transaction time)."""
         try:
-            # Convert to milliseconds timestamp
+            # Convert to milliseconds timestamp for smart contract query (blockchain time)
             start_timestamp = int(start_time.timestamp() * 1000)
             end_timestamp = int(end_time.timestamp() * 1000)
             
@@ -1504,7 +1504,7 @@ class ETRAPClient:
                     table_names=batch_summary_top.get('table_names', []),
                     transaction_count=batch_summary_top.get('tx_count', 0),
                     merkle_root=batch_summary_top.get('merkle_root', ''),
-                    timestamp=datetime.fromtimestamp(batch_summary_top.get('timestamp', 0) / 1000),
+                    timestamp=datetime.fromtimestamp(batch_summary_top.get('timestamp', 0) / 1000),  # Blockchain batch creation time
                     s3_location=S3Location(
                         bucket=batch_summary_top.get('s3_bucket', f"etrap-{self.organization_id}"),
                         key=batch_summary_top.get('s3_key', ''),
