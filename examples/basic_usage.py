@@ -1,8 +1,24 @@
 #!/usr/bin/env python3
 """
-Basic usage example for ETRAP SDK.
+================================================================================
+ETRAP SDK - Basic Usage Example
+================================================================================
 
-This example demonstrates how to use the SDK to verify transactions.
+This example demonstrates the core functionality of the ETRAP SDK for verifying
+database transactions against blockchain records stored on NEAR Protocol.
+
+What this example shows:
+- How to initialize the ETRAPClient with organization and network settings
+- How to verify a transaction using the SDK's verify_transaction() method
+- How to use optimization hints to improve verification performance
+- Transaction hash computation and verification result handling
+
+The example uses hardcoded transaction data from the 'lunaris' organization
+that exists in the NEAR testnet blockchain for demonstration purposes.
+
+Usage: python basic_usage.py
+
+No parameters required - this is a self-contained demonstration.
 """
 
 import asyncio
@@ -10,25 +26,26 @@ from etrap_sdk import ETRAPClient, S3Config, VerificationHints
 
 
 async def main():
-    # Initialize the client
+    # Initialize the client for the 'lunaris' organization on testnet
     client = ETRAPClient(
-        organization_id="acme",  # Your organization ID
+        organization_id="lunaris",
         network="testnet",
         s3_config=S3Config(
-            # bucket_name is automatically derived as "etrap-acme"
-            # contract_id is automatically set to "acme.testnet"
+            # bucket_name is automatically derived as "etrap-lunaris"
+            # contract_id is automatically set to "lunaris.testnet"
             region="us-west-2"
         )
     )
     
     # Example transaction data (as returned from database)
+    # This is record ID 144 that exists in batch BATCH-2025-06-28-1107c8e1
     transaction = {
-        "id": 109,
-        "account_id": "ACC999",
-        "amount": 999.99,
+        "id": 144,
+        "account_id": "TEST555",
+        "amount": "55555.55",
         "type": "C",
-        "created_at": "2025-06-14 07:10:55.461133",
-        "reference": "TEST-VERIFY"
+        "created_at": "2025-06-28 17:48:09.243538",
+        "reference": "Test DEFAULT identity"
     }
     
     # Show computed hash
@@ -60,7 +77,7 @@ async def main():
     
     hints = VerificationHints(
         table_name="financial_transactions",
-        database_name="production"
+        database_name="etrapdb"
     )
     
     try:
