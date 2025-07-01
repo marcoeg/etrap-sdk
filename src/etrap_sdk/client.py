@@ -104,7 +104,7 @@ class ETRAPClient:
     def _get_default_rpc_endpoint(self, network: str) -> str:
         """Get default RPC endpoint for network."""
         endpoints = {
-            "testnet": "https://rpc.testnet.near.org",
+            "testnet": "https://test.rpc.fastnear.com",  # FastNear RPC (higher rate limits)
             "mainnet": "https://rpc.mainnet.near.org",
             "localnet": "http://localhost:3030"
         }
@@ -175,24 +175,60 @@ class ETRAPClient:
                     )
             
             # Time range search if provided
+            time_range_attempted = False
             if hints and hints.time_range:
                 logger.debug(f"Using time range hint: {hints.time_range.start} to {hints.time_range.end}")
-                batches = await self._get_batches_by_time_range(
-                    hints.time_range.start,
-                    hints.time_range.end,
-                    database=hints.database_name if hints else None,
-                    limit=100
-                )
-                for batch in batches:
-                    try:
-                        result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
-                        if result:
-                            return result
-                    except VerificationError:
-                        # Skip this batch and continue searching
-                        continue
-                # If time range specified, don't search beyond it
-                if not (hints.table_name or hints.database_name):
+                time_range_attempted = True
+                try:
+                    batches = await self._get_batches_by_time_range(
+                        hints.time_range.start,
+                        hints.time_range.end,
+                        database=hints.database_name if hints else None,
+                        limit=100
+                    )
+                    for batch in batches:
+                        try:
+                            result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
+                            if result:
+                                return result
+                        except VerificationError:
+                            # Skip this batch and continue searching
+                            continue
+                    
+                    # Time range search completed but didn't find transaction
+                    logger.debug(f"Time range search found {len(batches)} batches but transaction not verified")
+                    
+                except Exception as e:
+                    logger.warning(f"Time range search failed: {e}")
+                
+                # If time range specified with other hints, don't fall back to full search
+                if hints.table_name or hints.database_name:
+                    # Continue to other hint-based searches
+                    pass
+                else:
+                    # Time range was the only hint - fall back to recent batches as safety net
+                    # This handles cases where contract time range method is incomplete/buggy
+                    logger.debug("Time range search incomplete, falling back to recent batches search")
+                    recent_batches = await self._get_recent_batches(100)
+                    
+                    # Filter recent batches by time range for consistency
+                    filtered_batches = [
+                        b for b in recent_batches 
+                        if hints.time_range.start <= b.timestamp <= hints.time_range.end
+                    ]
+                    
+                    logger.debug(f"Fallback found {len(filtered_batches)} batches in time range")
+                    
+                    for batch in filtered_batches:
+                        try:
+                            result = await self._verify_in_batch(tx_hash, batch, use_contract_verification, hints.expected_operation if hints else None)
+                            if result:
+                                return result
+                        except VerificationError:
+                            # Skip this batch and continue searching
+                            continue
+                    
+                    # Both time range and fallback search failed
                     return VerificationResult(
                         verified=False,
                         transaction_hash=tx_hash,
@@ -225,8 +261,8 @@ class ETRAPClient:
                         # Skip this batch and continue searching
                         continue
             
-            # Fall back to recent batches only if no hints provided
-            if not hints or not any([hints.batch_id, hints.table_name, hints.database_name, hints.time_range]):
+            # Fall back to recent batches only if no hints provided and time range wasn't attempted
+            if not hints or (not any([hints.batch_id, hints.table_name, hints.database_name, hints.time_range]) and not time_range_attempted):
                 logger.debug("No hints provided, searching recent batches")
                 recent_batches = await self._get_recent_batches(100)
                 for batch in recent_batches:
@@ -256,6 +292,7 @@ class ETRAPClient:
     async def verify_batch(
         self,
         transactions: List[Dict[str, Any]],
+        hints: Optional[VerificationHints] = None,
         parallel: bool = True,
         fail_fast: bool = False,
         progress_callback: Optional[Callable] = None
@@ -265,12 +302,24 @@ class ETRAPClient:
         
         Args:
             transactions: List of transactions to verify
+            hints: Optional optimization hints to speed up verification:
+                - batch_id: Direct batch lookup (fastest method)
+                - database_name: Limit search to specific database
+                - table_name: Limit search to specific table
+                - time_range: Search within time range for better performance
+                - expected_operation: Expected operation type (INSERT, UPDATE, DELETE)
+                  to disambiguate hash collisions between different operations
             parallel: Process transactions in parallel
             fail_fast: Stop on first failure
             progress_callback: Callback for progress updates
             
         Returns:
             BatchVerificationResult with summary and individual results
+            
+        Note:
+            The expected_operation hint is crucial when verifying transactions where
+            the same data might appear in both INSERT and DELETE operations, as these
+            would produce identical hashes but represent different database events.
         """
         results = []
         start_time = datetime.now()
@@ -278,7 +327,7 @@ class ETRAPClient:
         if parallel:
             # Verify in parallel
             tasks = [
-                self.verify_transaction(tx)
+                self.verify_transaction(tx, hints=hints)
                 for tx in transactions
             ]
             
@@ -297,7 +346,7 @@ class ETRAPClient:
         else:
             # Verify sequentially
             for i, tx in enumerate(transactions):
-                result = await self.verify_transaction(tx)
+                result = await self.verify_transaction(tx, hints=hints)
                 results.append(result)
                 
                 if progress_callback:
