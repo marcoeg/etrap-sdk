@@ -2,16 +2,29 @@
 
 This directory contains example scripts demonstrating how to use the ETRAP SDK for various transaction verification and audit trail operations.
 
+## Batch Data Structure
+
+The `batch-multi.json` file shows the complete structure of an ETRAP batch containing multiple transactions. This demonstrates:
+
+- **Batch metadata**: Organization, database, timestamp information
+- **Transaction records**: Individual transaction data with hashes and Merkle leaf positions  
+- **Merkle tree**: Complete cryptographic proof structure for verification
+- **Search indices**: Optimized lookups by timestamp, operation type, and date
+- **Compliance data**: Rules, classifications, and retention policies
+- **Verification anchoring**: Blockchain transaction details and signatures
+
+This structure represents what gets stored in S3 for detailed batch verification.
+
 ## Examples Overview
 
 ### Basic Examples
 
-- **basic_usage.py** - Simple transaction verification example
+- **basic_usage.py** - Self-contained demonstration of core ETRAP SDK functionality. Shows client initialization, transaction verification, and optimization hints using real blockchain data.
+- **debug_batch.py** - Debugging tool for inspecting ETRAP batch metadata stored on NEAR blockchain. Retrieves raw NFT data and displays batch information including S3 locations and Merkle roots.
+- **data_models.py** - Demonstrates the data structures and models used by the ETRAP SDK. Shows how to create and work with BatchInfo, filters, search criteria, and other SDK data models.
+- **hash_computation.py** - Transaction hash computation and debugging tool. Shows how the SDK normalizes transaction data and computes hashes, useful for troubleshooting verification failures and understanding hash calculation differences.
+- **analyze_batch_structure.py** - Analyzes ETRAP batch data structure using batch-multi.json. Shows how multi-transaction batches are organized, Merkle tree structure, and cryptographic verification process.
 - **list_batches.py** - List recent batches from the blockchain
-- **debug_batch.py** - Debug and inspect batch metadata
-- **hash_computation.py** - Demonstrate transaction hash computation
-- **data_models.py** - Show how to work with SDK data models
-- **with_logging.py** - Configure SDK logging for debugging
 
 ### Verification Tools
 
@@ -766,13 +779,57 @@ Debug batch metadata:
 python debug_batch.py BATCH-2025-06-14-978b1710
 ```
 
-### with_logging.py
+### hash_computation.py
 
-Enable debug logging:
+Transaction hash computation and debugging tool. Shows how the SDK normalizes transaction data and computes hashes:
+
+```bash
+# Use with custom transaction data
+uv run examples/hash_computation.py '{"id": 144, "account_id": "TEST555", "amount": "55555.55", "type": "C", "created_at": "2025-06-28 17:48:09.243538", "reference": "Test DEFAULT identity"}'
+
+# Use with default example data  
+uv run examples/hash_computation.py
+```
+
+### analyze_batch_structure.py
+
+Analyzes ETRAP batch data structure and shows how multi-transaction verification works:
+
+```bash
+# Analyze the example multi-transaction batch
+uv run examples/analyze_batch_structure.py
+
+# Analyze a custom batch file
+uv run examples/analyze_batch_structure.py path/to/batch-data.json
+```
+
+## Debugging and Troubleshooting
+
+### Enable Debug Logging
+
+To see detailed SDK operations and troubleshoot issues, enable debug logging:
 
 ```python
+import logging
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Enable debug logging for ETRAP SDK
 logging.getLogger('etrap_sdk').setLevel(logging.DEBUG)
 ```
+
+This will show:
+- Contract calls and responses
+- S3 access attempts and results
+- Merkle proof verification steps
+- Search optimization decisions
+- Cache hits and misses
+
+The `basic_usage.py` example includes commented logging setup that can be uncommented for debugging.
 
 ## Requirements
 

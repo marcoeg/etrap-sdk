@@ -1,31 +1,58 @@
 #!/usr/bin/env python3
 """
-ETRAP SDK Demo Tool - Comprehensive Example
+================================================================================
+ETRAP SDK - Comprehensive Demo Tool
+================================================================================
 
-This example demonstrates ALL capabilities of the ETRAP SDK.
-For simple transaction verification, use etrap_verify_sdk.py instead.
+This tool demonstrates ALL capabilities of the ETRAP SDK and serves as a
+comprehensive example for learning, exploration, and debugging.
 
-This tool is intended for:
-- Learning the SDK capabilities
-- Exploring blockchain data
-- Debugging and analysis
-- Testing SDK features
+What this tool provides:
+- Transaction verification with detailed output
+- Transaction search by hash across batches
+- Batch listing, filtering, and analysis
+- Contract statistics and usage analytics
+- Transaction history queries with filtering
+- Merkle proof inspection and validation
+- Multiple output formats (human-readable and JSON)
 
-Usage:
-    # Verify a single transaction
-    python sdk_demo.py verify --data '{"id": 123, "amount": 100.50, ...}'
+This tool is designed for:
+- Learning the SDK capabilities and features
+- Exploring blockchain data and transaction history
+- Debugging verification issues and batch problems
+- Testing SDK features and understanding data flow
+- Analyzing contract usage and performance
+
+For production transaction verification, use etrap_verify_sdk.py instead.
+
+Usage: python sdk_demo.py -o <organization> <command> [options]
+
+Available Commands:
+    verify              Verify a single transaction
+    search              Search for transaction by hash
+    list-batches        List recent batches with filtering
+    analyze-batch       Analyze specific batch in detail
+    stats               Get contract statistics and usage
+    search-batches      Search batches by criteria
+    history             Query transaction history
+
+Basic Examples:
+    # Verify a transaction
+    sdk_demo.py -o lunaris verify --data '{"id": 144, "account_id": "TEST555", "amount": "55555.55"}'
     
-    # Search for transactions by hash
-    python sdk_demo.py search --hash abc123...
+    # Search for transaction by hash
+    sdk_demo.py -o lunaris search --hash 2b1c7c3e21c40fbdea5cfc52556fc1c81ef8f9289b287d2fb3874d76f955dbbc
     
     # List recent batches
-    python sdk_demo.py list-batches --limit 10
+    sdk_demo.py -o lunaris list-batches --limit 10
     
     # Get contract statistics
-    python sdk_demo.py stats --period 7d
+    sdk_demo.py -o lunaris stats --period 7d
     
-    # Analyze a specific batch
-    python sdk_demo.py analyze-batch --batch-id BATCH-2024-01-01-abc123
+    # Analyze specific batch
+    sdk_demo.py -o lunaris analyze-batch --batch-id BATCH-2025-06-28-1107c8e1
+
+For complete command reference and examples, see examples/README.md
 """
 
 import asyncio

@@ -22,10 +22,16 @@ No parameters required - this is a self-contained demonstration.
 """
 
 import asyncio
+import logging
 from etrap_sdk import ETRAPClient, S3Config, VerificationHints
 
 
 async def main():
+    # Optional: Enable debug logging to see what the SDK is doing
+    # Uncomment these lines to see detailed SDK operations:
+    # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # logging.getLogger('etrap_sdk').setLevel(logging.DEBUG)
+    
     # Initialize the client for the 'lunaris' organization on testnet
     client = ETRAPClient(
         organization_id="lunaris",

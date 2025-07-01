@@ -1,23 +1,51 @@
 #!/usr/bin/env python3
 """
-ETRAP Transaction Verification Tool (SDK Version)
+================================================================================
+ETRAP SDK - Transaction Verification Tool
+================================================================================
 
-A complete clone of etrap_verify.py that uses the ETRAP SDK for all operations.
-This tool provides identical functionality with a cleaner interface using organization IDs.
+Production-ready CLI tool for verifying database transactions against ETRAP
+blockchain records. This is a complete SDK-based replacement for the original
+etrap_verify.py with enhanced features and cleaner interface.
 
-Usage:
-    # Verify a transaction from JSON string
-    etrap_verify_sdk.py -o acme --data '{"id":123,"account_id":"ACC500","amount":10000}'
+What this tool provides:
+- Single transaction verification against blockchain records
+- Multiple input methods (JSON string, file, stdin)
+- Optimization hints for faster verification (batch, table, database, time)
+- Smart contract or local verification methods
+- JSON and human-readable output formats
+- Comprehensive error handling and debugging information
+
+This tool is designed for production use, automation, and integration into
+existing verification workflows.
+
+Usage: python etrap_verify_sdk.py -o <organization> --data '<json>' [options]
+
+Basic Examples:
+    # Verify from JSON string
+    etrap_verify_sdk.py -o lunaris --data '{"id":144,"account_id":"TEST555","amount":"55555.55"}'
     
-    # Verify from a file
-    etrap_verify_sdk.py -o acme --data-file transaction.json
+    # Verify from file
+    etrap_verify_sdk.py -o lunaris --data-file transaction.json
     
     # Verify from stdin
-    echo '{"id":123,...}' | etrap_verify_sdk.py -o acme --data -
+    echo '{"id":123,...}' | etrap_verify_sdk.py -o lunaris --data -
     
-    # Provide hints for faster search
-    etrap_verify_sdk.py -o acme --data-file tx.json --hint-table financial_transactions
-    etrap_verify_sdk.py -o acme --data-file tx.json --hint-batch BATCH-2025-06-14-abc123
+    # Use optimization hints
+    etrap_verify_sdk.py -o lunaris --data-file tx.json --hint-batch BATCH-2025-06-28-1107c8e1
+    etrap_verify_sdk.py -o lunaris --data-file tx.json --hint-time-start 2025-06-28
+
+Arguments:
+    -o, --organization    Organization ID (required, e.g., lunaris, acme)
+    --data               Transaction JSON string (use "-" for stdin)
+    --data-file          Path to file containing transaction JSON
+    --hint-batch         Specific batch ID for direct lookup
+    --hint-time-start    Start time for time range search
+    --hint-time-end      End time for time range search
+    --json               Output result as JSON
+    --quiet              Minimal output (just verification status)
+
+For complete documentation and examples, see examples/README.md
 """
 
 import argparse

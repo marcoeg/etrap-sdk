@@ -1,8 +1,27 @@
 #!/usr/bin/env python3
 """
-Example showing ETRAP SDK data models.
+================================================================================
+ETRAP SDK - Data Models Example
+================================================================================
 
-This demonstrates how to work with the various data models provided by the SDK.
+This example demonstrates the data structures and models used by the ETRAP SDK
+for filtering, searching, and organizing blockchain transaction data.
+
+What this example shows:
+- BatchInfo: Metadata about transaction batches stored on blockchain
+- S3Location: Configuration for AWS S3 storage of detailed batch data  
+- BatchFilter: Criteria for filtering batches by database, table, and time
+- SearchCriteria: Parameters for searching transactions by hash and operations
+- TransactionFilter: Filters for transactions by account, amount, and type
+- TimeRange & DateRange: Time-based constraints for queries
+- AmountRange: Numeric range filters for transaction amounts
+
+The example creates instances of each model and displays their properties,
+showing how to construct filters and search criteria for the ETRAP SDK.
+
+Usage: python data_models.py
+
+No parameters required - this is a self-contained demonstration.
 """
 
 from datetime import datetime
