@@ -32,6 +32,7 @@ Available Commands:
     search              Search for transaction by hash
     list-batches        List recent batches with filtering
     analyze-batch       Analyze specific batch in detail
+    get-nft             Get NFT metadata and blockchain details
     stats               Get contract statistics and usage
     search-batches      Search batches by criteria
     history             Query transaction history
@@ -51,6 +52,12 @@ Basic Examples:
     
     # Analyze specific batch
     sdk_demo.py -o lunaris analyze-batch --batch-id BATCH-2025-06-28-1107c8e1
+    
+    # Get NFT information
+    sdk_demo.py -o lunaris get-nft --token-id BATCH-2025-07-01-c9de5968
+    
+    # Get NFT information as JSON
+    sdk_demo.py -o lunaris --json get-nft --token-id BATCH-2025-07-01-c9de5968
 
 For complete command reference and examples, see examples/README.md
 """
@@ -372,6 +379,19 @@ class ComprehensiveVerifier:
                         print(f"   Height: {batch_data.merkle_tree.height}")
                         print(f"   Root: {batch_data.merkle_tree.root}")
                 
+                if batch_data.operation_counts:
+                    result['operation_counts'] = {
+                        'inserts': batch_data.operation_counts.inserts,
+                        'updates': batch_data.operation_counts.updates,
+                        'deletes': batch_data.operation_counts.deletes
+                    }
+                    
+                    if verbose:
+                        print(f"\n📊 Operation Counts:")
+                        print(f"   Inserts: {batch_data.operation_counts.inserts}")
+                        print(f"   Updates: {batch_data.operation_counts.updates}")
+                        print(f"   Deletes: {batch_data.operation_counts.deletes}")
+                
                 if batch_data.indices:
                     result['has_indices'] = True
                     if verbose:
@@ -560,6 +580,55 @@ class ComprehensiveVerifier:
             })
         
         return result
+    
+    async def get_nft_info(
+        self,
+        token_id: str,
+        verbose: bool = True
+    ) -> Optional[Dict[str, Any]]:
+        """Get comprehensive NFT information for a batch token."""
+        if verbose:
+            print(f"🎨 NFT Information: {token_id}")
+            print("━" * 60)
+        
+        # Get NFT information
+        nft_info = await self.client.get_nft_info(token_id)
+        if not nft_info:
+            if verbose:
+                print("❌ NFT not found")
+            return None
+        
+        result = {
+            'token_id': nft_info.token_id,
+            'owner_id': nft_info.owner_id,
+            'metadata': nft_info.metadata,
+            'minted_timestamp': nft_info.minted_timestamp,
+            'batch_id': nft_info.batch_id,
+            'organization_id': nft_info.organization_id,
+            'merkle_root': nft_info.merkle_root,
+            'blockchain_details': nft_info.blockchain_details
+        }
+        
+        if verbose:
+            print(f"📋 Basic Information:")
+            print(f"   Token ID: {nft_info.token_id}")
+            print(f"   Owner: {nft_info.owner_id}")
+            print(f"   Minted: {nft_info.minted_timestamp}")
+            print(f"   Organization: {nft_info.organization_id}")
+            
+            print(f"\n🏷️  Metadata:")
+            print(f"   Title: {nft_info.metadata.get('title', 'N/A')}")
+            print(f"   Description: {nft_info.metadata.get('description', 'N/A')}")
+            if nft_info.metadata.get('reference'):
+                print(f"   Reference: {nft_info.metadata['reference']}")
+            
+            print(f"\n⛓️  Blockchain Details:")
+            print(f"   Contract: {nft_info.blockchain_details.get('contract_id', 'N/A')}")
+            print(f"   Network: {nft_info.blockchain_details.get('network', 'N/A')}")
+            print(f"   Standard: {nft_info.blockchain_details.get('token_standard', 'N/A')}")
+            print(f"   Merkle Root: {nft_info.merkle_root}")
+        
+        return result
 
 
 async def main():
@@ -658,6 +727,14 @@ async def main():
         '--batch-id',
         required=True,
         help='Batch ID to analyze'
+    )
+    
+    # Get NFT command
+    nft_parser = subparsers.add_parser('get-nft', help='Get NFT metadata and blockchain details')
+    nft_parser.add_argument(
+        '--token-id',
+        required=True,
+        help='NFT token ID (same as batch ID)'
     )
     
     # Stats command
@@ -797,6 +874,19 @@ async def main():
         elif args.command == 'analyze-batch':
             result = await verifier.analyze_batch(
                 args.batch_id,
+                verbose=verbose
+            )
+            
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            elif not result:
+                return 1
+            
+            return 0
+        
+        elif args.command == 'get-nft':
+            result = await verifier.get_nft_info(
+                args.token_id,
                 verbose=verbose
             )
             

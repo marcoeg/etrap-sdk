@@ -84,6 +84,13 @@ class S3Location(BaseModel):
     region: str = "us-west-2"
 
 
+class OperationCounts(BaseModel):
+    """Operation counts for a batch."""
+    inserts: int = 0
+    updates: int = 0
+    deletes: int = 0
+
+
 class BatchInfo(BaseModel):
     """Information about a batch stored on blockchain."""
     batch_id: str
@@ -135,6 +142,7 @@ class BatchData(BaseModel):
     merkle_tree: Optional[MerkleTree] = None
     transaction_count: int
     indices: Optional[BatchIndices] = None
+    operation_counts: Optional[OperationCounts] = None
 
 
 # Search Models
@@ -185,6 +193,19 @@ class TransactionHistory(BaseModel):
     transactions: List[TransactionRecord]
     total_found: int
     time_range_covered: TimeRange
+
+
+# NFT Models
+class NFTInfo(BaseModel):
+    """Information about a NEAR NFT representing a batch."""
+    token_id: str
+    owner_id: str
+    metadata: Dict[str, Any]
+    minted_timestamp: datetime
+    batch_id: str
+    organization_id: str
+    merkle_root: str
+    blockchain_details: Dict[str, Any]
 
 
 # Contract Models

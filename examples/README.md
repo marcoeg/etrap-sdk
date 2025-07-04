@@ -249,6 +249,85 @@ python sdk_demo.py analyze-batch --batch-id BATCH-2025-06-14-978b1710
    By date: 1 dates
 ```
 
+#### get-nft - Get NFT Metadata and Blockchain Details
+
+Get comprehensive NFT information for ETRAP batch tokens. Each batch in ETRAP creates a unique NFT on the blockchain that represents ownership of the audit record.
+
+```bash
+python sdk_demo.py get-nft --token-id <TOKEN_ID>
+```
+
+**Options:**
+- `--token-id` (required) - NFT token ID (same as batch ID)
+
+**Example:**
+
+```bash
+python sdk_demo.py get-nft --token-id BATCH-2025-07-01-c9de5968
+
+# Output:
+🎨 NFT Information: BATCH-2025-07-01-c9de5968
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Basic Information:
+   Token ID: BATCH-2025-07-01-c9de5968
+   Owner: lunaris.testnet
+   Minted: 2025-07-01 09:55:10.475000
+   Organization: lunaris
+
+🏷️  Metadata:
+   Title: ETRAP Batch BATCH-2025-07-01-c9de5968
+   Description: Integrity certificate for 4 transactions from table financial_transactions
+   Reference: https://s3.amazonaws.com/etrap-lunaris/BATCH-2025-07-01-c9de5968/batch-data.json
+
+⛓️  Blockchain Details:
+   Contract: lunaris.testnet
+   Network: testnet
+   Standard: NEP-171
+   Merkle Root: b1e52265e4fd5afaf673454fe7351cbc516bea056c08f99e3d0876217b0aacab
+```
+
+**JSON Output:**
+
+```bash
+python sdk_demo.py --json get-nft --token-id BATCH-2025-07-01-c9de5968
+
+# Output:
+{
+  "token_id": "BATCH-2025-07-01-c9de5968",
+  "owner_id": "lunaris.testnet",
+  "metadata": {
+    "title": "ETRAP Batch BATCH-2025-07-01-c9de5968",
+    "description": "Integrity certificate for 4 transactions from table financial_transactions",
+    "reference": "https://s3.amazonaws.com/etrap-lunaris/BATCH-2025-07-01-c9de5968/batch-data.json",
+    "issued_at": "1751388910475",
+    "copies": 1
+  },
+  "minted_timestamp": "2025-07-01T09:55:10.475000",
+  "batch_id": "BATCH-2025-07-01-c9de5968",
+  "organization_id": "lunaris",
+  "merkle_root": "b1e52265e4fd5afaf673454fe7351cbc516bea056c08f99e3d0876217b0aacab",
+  "blockchain_details": {
+    "contract_id": "lunaris.testnet",
+    "network": "testnet",
+    "token_standard": "NEP-171",
+    "approved_account_ids": {}
+  }
+}
+```
+
+**Key Features:**
+- **NEP-171 Compliant**: Full NEAR NFT standard compliance
+- **Ownership Information**: Current owner and approved accounts
+- **Rich Metadata**: Title, description, and S3 reference for audit data
+- **Blockchain Asset Data**: Contract details and minting information
+- **Cryptographic Integrity**: Merkle root for transaction verification
+
+**Use Cases:**
+- **Asset Ownership**: Determine who owns the audit record NFT
+- **Compliance Documentation**: Generate certificates of audit record ownership
+- **Blockchain Integration**: Access NFT data for marketplace or transfer operations
+- **Audit Trail**: Link blockchain assets to audit records
+
 #### stats - Get Contract Statistics
 
 View contract usage statistics for different time periods.

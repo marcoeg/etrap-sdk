@@ -9,6 +9,7 @@ The ETRAP SDK provides a simple and intuitive interface for:
 - Searching and retrieving audit trail data
 - Validating Merkle proofs
 - Accessing batch information stored on NEAR blockchain
+- Retrieving NFT metadata and blockchain asset information
 
 ### Organization-Based Architecture
 
@@ -212,6 +213,91 @@ if result.verified:
 else:
     print(f"L Verification failed: {result.error}")
 ```
+
+## Examples and Tools
+
+### SDK Demo Tool (examples/sdk_demo.py)
+
+The SDK includes a comprehensive demo tool that showcases all major functionality:
+
+```bash
+# Run with uv (recommended)
+uv run python examples/sdk_demo.py -o <organization> <command> [options]
+
+# Or with activated virtual environment
+python examples/sdk_demo.py -o <organization> <command> [options]
+```
+
+#### Available Commands
+
+- `verify` - Verify a single transaction
+- `search` - Search for transaction by hash
+- `list-batches` - List recent batches with filtering
+- `analyze-batch` - Analyze specific batch in detail
+- `get-nft` - Get NFT metadata and blockchain details
+- `stats` - Get contract statistics and usage
+- `search-batches` - Search batches by criteria
+- `history` - Query transaction history
+
+#### Example Usage
+
+```bash
+# Verify a transaction
+uv run python examples/sdk_demo.py -o lunaris verify \
+  --data '{"id": 144, "account_id": "TEST555", "amount": "55555.55"}'
+
+# Analyze a batch with operation counts
+uv run python examples/sdk_demo.py -o lunaris analyze-batch \
+  --batch-id BATCH-2025-07-01-c9de5968
+
+# Get NFT information (human-readable)
+uv run python examples/sdk_demo.py -o lunaris get-nft \
+  --token-id BATCH-2025-07-01-c9de5968
+
+# Get NFT information (JSON output)
+uv run python examples/sdk_demo.py -o lunaris --json get-nft \
+  --token-id BATCH-2025-07-01-c9de5968
+
+# List recent batches
+uv run python examples/sdk_demo.py -o lunaris list-batches --limit 10
+
+# Get contract statistics
+uv run python examples/sdk_demo.py -o lunaris stats --period 7d
+```
+
+### NFT Information
+
+The `get-nft` command provides comprehensive blockchain asset information:
+
+**Verbose Output:**
+```
+🎨 NFT Information: BATCH-2025-07-01-c9de5968
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Basic Information:
+   Token ID: BATCH-2025-07-01-c9de5968
+   Owner: lunaris.testnet
+   Minted: 2025-07-01 09:55:10.475000
+   Organization: lunaris
+
+🏷️  Metadata:
+   Title: ETRAP Batch BATCH-2025-07-01-c9de5968
+   Description: Integrity certificate for 4 transactions...
+   Reference: https://s3.amazonaws.com/etrap-lunaris/...
+
+⛓️  Blockchain Details:
+   Contract: lunaris.testnet
+   Network: testnet
+   Standard: NEP-171
+   Merkle Root: b1e52265e4fd5afaf673454fe7351cbc516bea056c08f99e3d0876217b0aacab
+```
+
+**JSON Output:** Complete structured data for programmatic use.
+
+### Other Examples
+
+- `examples/basic_usage.py` - Simple verification example
+- `examples/list_batches.py` - Batch listing and filtering
+- `examples/etrap_verify_sdk.py` - Production verification tool
 
 ## Features
 
@@ -823,6 +909,32 @@ Gets contract usage statistics.
 stats = await client.get_contract_stats("7d")
 print(f"Batches created: {stats.batches_created}")
 print(f"Transactions recorded: {stats.transactions_recorded}")
+```
+
+### NFT Information Methods
+
+#### get_nft_info
+
+```python
+async def get_nft_info(nft_token_id: str) -> Optional[NFTInfo]
+```
+
+Gets comprehensive NFT information for a batch token.
+
+**Parameters:**
+- `nft_token_id` (str): NFT token identifier (same as batch_id in ETRAP)
+
+**Returns:**
+- `Optional[NFTInfo]`: NFT information including metadata, ownership, and blockchain details, or None if not found
+
+**Example:**
+```python
+nft_info = await client.get_nft_info("BATCH-2025-07-01-c9de5968")
+if nft_info:
+    print(f"Owner: {nft_info.owner_id}")
+    print(f"Title: {nft_info.metadata.get('title')}")
+    print(f"Merkle Root: {nft_info.merkle_root}")
+    print(f"Contract: {nft_info.blockchain_details['contract_id']}")
 ```
 
 ### Utility Methods

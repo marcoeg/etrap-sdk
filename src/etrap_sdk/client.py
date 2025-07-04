@@ -21,7 +21,7 @@ from .models import (
     SearchResults, TransactionLocation, TransactionFilter, TransactionHistory,
     ContractInfo, ContractStats, S3Config, ClientConfig, MerkleProof,
     VerificationSummary, S3Location, TimeRange, MerkleTree, BatchIndices,
-    TransactionRecord
+    TransactionRecord, OperationCounts, NFTInfo
 )
 from .exceptions import (
     ETRAPError, VerificationError, BatchNotFoundError, NetworkError,
@@ -679,6 +679,35 @@ class ETRAPClient:
                     by_date=idx.get('by_date', {})
                 )
             
+            # Compute operation counts from batch data
+            operation_counts = None
+            if 'transactions' in batch_json:
+                # Try to use efficient indices-based counting first
+                if 'indices' in batch_json and 'by_operation' in batch_json['indices']:
+                    by_operation = batch_json['indices']['by_operation']
+                    operation_counts = OperationCounts(
+                        inserts=len(by_operation.get('INSERT', [])),
+                        updates=len(by_operation.get('UPDATE', [])),
+                        deletes=len(by_operation.get('DELETE', []))
+                    )
+                else:
+                    # Fallback: count by iterating through transactions
+                    inserts = updates = deletes = 0
+                    for tx in batch_json['transactions']:
+                        op_type = tx.get('metadata', {}).get('operation_type', '')
+                        if op_type == 'INSERT':
+                            inserts += 1
+                        elif op_type == 'UPDATE':
+                            updates += 1
+                        elif op_type == 'DELETE':
+                            deletes += 1
+                    
+                    operation_counts = OperationCounts(
+                        inserts=inserts,
+                        updates=updates,
+                        deletes=deletes
+                    )
+            
             # Store raw batch data for transaction access
             self._cache[f"batch_data_{batch_id}"] = batch_json
             self._cache_timestamps[f"batch_data_{batch_id}"] = datetime.now()
@@ -687,7 +716,8 @@ class ETRAPClient:
                 batch_info=batch_info,
                 merkle_tree=merkle_tree,
                 transaction_count=len(batch_json.get('transactions', [])),
-                indices=indices
+                indices=indices,
+                operation_counts=operation_counts
             )
             
         except Exception as e:
@@ -1056,6 +1086,59 @@ class ETRAPClient:
                 storage_used="0",
                 time_period=time_period
             )
+    
+    async def get_nft_info(self, nft_token_id: str) -> Optional[NFTInfo]:
+        """
+        Get NFT information for a specific batch token.
+        
+        Args:
+            nft_token_id: NFT token ID (same as batch_id in ETRAP)
+            
+        Returns:
+            NFTInfo with NFT metadata and blockchain details, or None if not found
+        """
+        try:
+            # Get NFT token info from NEAR contract
+            nft_token = await self.near_account.view_function(
+                self.contract_id,
+                "nft_token",
+                {"token_id": nft_token_id}
+            )
+            
+            # Handle ViewFunctionResult object
+            if hasattr(nft_token, 'result'):
+                nft_token = nft_token.result
+            
+            if not nft_token:
+                return None
+            
+            # Extract metadata
+            metadata = nft_token.get('metadata', {})
+            owner_id = nft_token.get('owner_id', '')
+            
+            # Get batch info for additional details
+            batch_info = await self.get_batch(nft_token_id)
+            
+            # Build NFT info
+            return NFTInfo(
+                token_id=nft_token_id,
+                owner_id=owner_id,
+                metadata=metadata,
+                minted_timestamp=batch_info.timestamp if batch_info else datetime.now(),
+                batch_id=nft_token_id,  # In ETRAP, batch_id = token_id
+                organization_id=self.organization_id,
+                merkle_root=batch_info.merkle_root if batch_info else '',
+                blockchain_details={
+                    'contract_id': self.contract_id,
+                    'network': self.network,
+                    'token_standard': 'NEP-171',
+                    'approved_account_ids': nft_token.get('approved_account_ids', [])
+                }
+            )
+            
+        except Exception as e:
+            logger.debug(f"Error getting NFT info for {nft_token_id}: {e}")
+            return None
     
     def normalize_transaction(
         self,

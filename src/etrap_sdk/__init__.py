@@ -26,6 +26,7 @@ from .models import (
     BatchData,
     BatchIndices,
     MerkleTree,
+    OperationCounts,
     
     # Search
     SearchCriteria,
@@ -45,6 +46,9 @@ from .models import (
     # Contract
     ContractInfo,
     ContractStats,
+    
+    # NFT
+    NFTInfo,
     
     # Time/Range
     TimeRange,
@@ -88,6 +92,7 @@ __all__ = [
     "BatchData",
     "BatchIndices",
     "MerkleTree",
+    "OperationCounts",
     "SearchCriteria",
     "SearchResults",
     "TransactionLocation",
@@ -99,6 +104,7 @@ __all__ = [
     "S3Location",
     "ContractInfo",
     "ContractStats",
+    "NFTInfo",
     "TimeRange",
     "DateRange",
     "AmountRange",
