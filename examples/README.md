@@ -1074,10 +1074,23 @@ $ python etrap_verify_sdk.py -o acme --data '{"id":109,...}'
 ✅ TRANSACTION VERIFIED
 ```
 
-## Support
+## 🤝 Contributing
 
-For issues or questions:
-- Check the main SDK documentation
-- Review error messages for specific guidance
-- Enable debug logging with `with_logging.py` example
-- Follow the troubleshooting steps above for verification issues
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+
+## 🪪 License
+
+MIT. See `./LICENSE`
+
+
+## 📄 Copyright
+
+Copyright (c) 2025 Graziano Labs Corp. All rights reserved.
+
+
+## 📧 Contact
+
+For questions or support, please open an issue in the GitHub repository.
+
+---

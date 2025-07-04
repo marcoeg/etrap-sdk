@@ -1069,8 +1069,23 @@ print(f"Cache TTL: {config.cache_ttl} seconds")
 - **S3AccessError**: S3 access or permissions error
 - **InvalidTransactionError**: Invalid transaction data provided
 
-## License
+## 🤝 Contributing
 
-MIT
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+
+## 🪪 License
+
+MIT. See `./LICENSE`
+
+
+## 📄 Copyright
 
 Copyright (c) 2025 Graziano Labs Corp. All rights reserved.
+
+
+## 📧 Contact
+
+For questions or support, please open an issue in the GitHub repository.
+
+---
