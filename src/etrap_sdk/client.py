@@ -1441,30 +1441,11 @@ class ETRAPClient:
     
     async def _get_batches_by_table(self, table_name: str, limit: int) -> List[BatchInfo]:
         """Get batches for a specific table."""
-        try:
-            # Try contract method for table-specific batches
-            result = await self.near_account.view_function(
-                self.contract_id,
-                "get_batches_by_table",
-                {"table_name": table_name, "limit": limit}
-            )
-            
-            # Handle ViewFunctionResult object
-            if hasattr(result, 'result'):
-                result = result.result
-            
-            if result:
-                batches = []
-                for batch_data in result:
-                    batch_info = self._parse_batch_info(batch_data)
-                    if batch_info:
-                        batches.append(batch_info)
-                return batches
-                
-        except Exception as e:
-            logger.warning(f"Table-specific query not supported: {e}")
+        # Note: The contract's get_batches_by_table method is unreliable and may return
+        # incomplete results. Always use the fallback logic of getting recent batches
+        # and filtering by table name.
         
-        # Fallback: get all recent batches and filter
+        # Get all recent batches and filter
         all_batches = await self._get_recent_batches(limit * 2)  # Get more to filter
         
         # Filter by table name
@@ -1479,40 +1460,11 @@ class ETRAPClient:
     
     async def _get_batches_by_database(self, database_name: str, limit: int = 100) -> List[BatchInfo]:
         """Get batches for a specific database."""
-        try:
-            # Use contract method for database-specific batches
-            result = await self.near_account.view_function(
-                self.contract_id,
-                "get_batches_by_database",
-                {
-                    "database": database_name,
-                    "from_index": 0,
-                    "limit": limit
-                }
-            )
-            
-            # Handle ViewFunctionResult object
-            if hasattr(result, 'result'):
-                result = result.result
-            
-            if result:
-                # Handle BatchSearchResult structure
-                if isinstance(result, dict) and 'batches' in result:
-                    batch_list = result['batches']
-                else:
-                    batch_list = result
-                
-                batches = []
-                for batch_data in batch_list:
-                    batch_info = self._parse_batch_info(batch_data)
-                    if batch_info:
-                        batches.append(batch_info)
-                return batches
-                
-        except Exception as e:
-            logger.warning(f"Database-specific query failed: {e}")
+        # Note: The contract's get_batches_by_database method is unreliable and may return
+        # incomplete results. Always use the fallback logic of getting recent batches
+        # and filtering by database name.
         
-        # Fallback: filter from recent batches
+        # Get recent batches and filter by database
         all_batches = await self._get_recent_batches(limit * 2)
         return [b for b in all_batches if b.database_name == database_name][:limit]
     
@@ -1732,27 +1684,11 @@ class ETRAPClient:
             # Use position-based verification for backward compatibility
             from .utils import validate_merkle_proof
             
-            # For position-based, we still need to handle the odd leaf edge case
-            if total_leaves % 2 == 1 and leaf_index == total_leaves - 1:
-                # This leaf has no sibling, so it's hashed with itself
-                # This creates the parent node that will be used in the proof
-                current_hash = hashlib.sha256((current_hash + current_hash).encode()).hexdigest()
-            
+            # CDC Agent now uses power-of-2 padding, so no odd-leaf duplication needed
             return validate_merkle_proof(current_hash, proof_path, sibling_positions, root)
         else:
             # Use index-based verification for new format (matches smart contract)
             
-            # Check if this leaf needs duplication (last leaf in odd-numbered set)
-            if total_leaves % 2 == 1 and leaf_index == total_leaves - 1:
-                # This leaf has no sibling, so it's hashed with itself
-                current_hash = hashlib.sha256((current_hash + current_hash).encode()).hexdigest()
-                # After duplication, we're at the parent level
-                # The duplicated node becomes the right child (index 1) at the parent level
-                # when there are 3 leaves, since (0,1) merge to index 0, (2,2) merge to index 1
-                current_index = 1
-            else:
-                current_index = leaf_index
-            
-            # Now apply the standard proof path using index-based positioning
+            # CDC Agent now uses power-of-2 padding, so no odd-leaf duplication needed
             from .utils import validate_merkle_proof_indexed
-            return validate_merkle_proof_indexed(current_hash, proof_path, current_index, root)
+            return validate_merkle_proof_indexed(current_hash, proof_path, leaf_index, root)
