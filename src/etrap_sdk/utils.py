@@ -31,6 +31,23 @@ def normalize_transaction_data(transaction_data: Dict[str, Any]) -> Dict[str, An
             if field == 'id' or field.endswith('_id'):
                 # Keep ID fields as integers (primary/foreign keys)
                 normalized[field] = value
+            elif field.endswith('_at') and isinstance(value, (int, float)) and value > 1000000000:
+                # Convert numeric _at fields to ISO format (matching CDC agent behavior)
+                # This handles epoch timestamps in seconds or milliseconds
+                if value > 1000000000000000:  # Microseconds (16+ digits)
+                    dt = datetime.fromtimestamp(value / 1000000)
+                elif value > 1000000000000:  # Milliseconds (13+ digits)
+                    dt = datetime.fromtimestamp(value / 1000)
+                else:  # Seconds (10+ digits)
+                    dt = datetime.fromtimestamp(value)
+                
+                # Format to match PostgreSQL timestamp format
+                iso_str = dt.strftime('%Y-%m-%dT%H:%M:%S.%f')
+                # Remove trailing zeros but keep at least milliseconds
+                iso_str = iso_str.rstrip('0').rstrip('.')
+                if '.' not in iso_str:
+                    iso_str += '.000'
+                normalized[field] = iso_str
             else:
                 # Convert other numeric fields to strings with database-compatible precision
                 if isinstance(value, float):
@@ -49,8 +66,8 @@ def normalize_transaction_data(transaction_data: Dict[str, Any]) -> Dict[str, An
                             decimal_str += '0'
                         normalized[field] = decimal_str
                 else:
-                    # For integers, convert directly to string
-                    normalized[field] = str(value)
+                    # For integers, keep as-is to match CDC agent behavior
+                    normalized[field] = value
     
     # Normalize timestamps
     for field, value in list(normalized.items()):

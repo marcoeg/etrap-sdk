@@ -26,7 +26,7 @@ class TestNormalization:
         }
         
         expected = {
-            "id": "123",
+            "id": 123,
             "amount": "999.99",
             "type": "C",
             "created_at": "2025-06-14T07:10:55.461"
@@ -38,13 +38,19 @@ class TestNormalization:
     def test_normalize_already_normalized(self):
         """Test that already normalized data stays the same."""
         input_data = {
-            "id": "123",
+            "id": 123,
+            "amount": "999.99",
+            "created_at": "2025-06-14T07:10:55.461"
+        }
+        
+        expected = {
+            "id": 123,
             "amount": "999.99",
             "created_at": "2025-06-14T07:10:55.461"
         }
         
         result = normalize_transaction_data(input_data)
-        assert result == input_data
+        assert result == expected
     
     def test_normalize_different_timestamp_formats(self):
         """Test various timestamp formats."""
@@ -70,10 +76,10 @@ class TestNormalization:
         }
         
         result = normalize_transaction_data(input_data)
-        assert result["id"] == "123"
+        assert result["id"] == 123
         assert result["amount"] == "999.99"
-        assert result["balance"] == "1234.5"
-        assert result["count"] == "10"
+        assert result["balance"] == "1234.50"  # Float formatting adds trailing zero
+        assert result["count"] == 10
     
     def test_normalize_null_values(self):
         """Test handling of null values."""
@@ -84,7 +90,7 @@ class TestNormalization:
         }
         
         result = normalize_transaction_data(input_data)
-        assert result["id"] == "123"
+        assert result["id"] == 123
         assert result["amount"] is None
         assert result["reference"] is None
     
@@ -99,9 +105,31 @@ class TestNormalization:
         }
         
         result = normalize_transaction_data(input_data)
-        assert result["id"] == "123"
+        assert result["id"] == 123
         assert result["metadata"]["user_id"] == 456  # Nested data not normalized
         assert result["metadata"]["tags"] == ["test", "sample"]
+    
+    def test_normalize_at_fields_with_epoch(self):
+        """Test that numeric _at fields convert to ISO format."""
+        input_data = {
+            "id": 123,
+            "created_at": 1736282700000,  # Epoch milliseconds
+            "updated_at": 1736282700,      # Epoch seconds
+            "transaction_date_time": 1736282700000,  # Not _at field
+            "amount": 100.0
+        }
+        
+        result = normalize_transaction_data(input_data)
+        assert result["id"] == 123
+        # Check that created_at was converted to ISO format (exact time depends on timezone)
+        assert isinstance(result["created_at"], str)
+        assert result["created_at"].startswith("2025-01-07T")
+        assert result["created_at"].endswith(".000")
+        # Check updated_at conversion
+        assert isinstance(result["updated_at"], str)
+        assert result["updated_at"].startswith("2025-01-07T")
+        assert result["transaction_date_time"] == 1736282700000  # Stays as number
+        assert result["amount"] == "100.00"  # Float becomes string
 
 
 class TestHashing:
@@ -123,13 +151,21 @@ class TestHashing:
     
     def test_compute_hash_with_normalization(self):
         """Test hash computation with normalization."""
+        # Test that same types produce same hash
         data1 = {"id": 123, "amount": 999.99}
-        data2 = {"id": "123", "amount": "999.99"}
+        data2 = {"id": 123, "amount": 999.99}
         
         hash1 = compute_transaction_hash(data1, normalize=True)
         hash2 = compute_transaction_hash(data2, normalize=True)
         
-        assert hash1 == hash2  # Normalized data produces same hash
+        assert hash1 == hash2  # Same data produces same hash
+        
+        # Test that normalization converts floats to strings but keeps ints
+        data3 = {"id": 123, "amount": 999.99, "count": 10}
+        normalized = normalize_transaction_data(data3)
+        assert normalized["id"] == 123  # int stays int
+        assert normalized["count"] == 10  # int stays int
+        assert normalized["amount"] == "999.99"  # float becomes string
     
     def test_compute_hash_order_insensitive(self):
         """Test that field order doesn't matter for hashing (uses sort_keys)."""
