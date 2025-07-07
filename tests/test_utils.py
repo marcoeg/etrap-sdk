@@ -177,15 +177,15 @@ class TestHashing:
         
         assert hash1 == hash2  # Same hash regardless of field order
     
-    def test_compute_hash_excludes_nulls(self):
-        """Test that null values are excluded from hash."""
+    def test_compute_hash_includes_nulls(self):
+        """Test that null values are included in hash (matching CDC agent behavior)."""
         data1 = {"id": "123", "amount": "999.99"}
         data2 = {"id": "123", "amount": "999.99", "reference": None}
         
         hash1 = compute_transaction_hash(data1, normalize=False)
         hash2 = compute_transaction_hash(data2, normalize=False)
         
-        assert hash1 == hash2  # Null fields don't affect hash
+        assert hash1 != hash2  # Null fields DO affect hash (CDC agent includes them)
 
 
 class TestMerkleProof:

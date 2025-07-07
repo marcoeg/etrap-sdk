@@ -113,8 +113,8 @@ def compute_transaction_hash(transaction_data: Dict[str, Any], normalize: bool =
     else:
         data = transaction_data.copy()
     
-    # Remove null values (they're not included in CDC agent hashing)
-    data = {k: v for k, v in data.items() if v is not None}
+    # Keep null values - CDC agent includes them in hashing
+    # data = {k: v for k, v in data.items() if v is not None}
     
     # Sort keys to ensure deterministic JSON (matching CDC agent)
     normalized_json = json.dumps(data, sort_keys=True, separators=(',', ':'))
