@@ -478,6 +478,30 @@ print(f"Transaction count: {batch.transaction_count}")
 print(f"Merkle root: {batch.merkle_root}")
 ```
 
+## CDC Agent Integration
+
+The SDK provides public API methods specifically designed for the ETRAP CDC Agent to ensure consistent transaction processing:
+
+### Transaction Processing API
+
+These methods are used by the CDC Agent to ensure that transaction recording and verification use identical logic:
+
+```python
+# Initialize client
+client = ETRAPClient(organization_id="acme", network="testnet")
+
+# Prepare transaction data for storage (normalizes data)
+prepared_data = client.prepare_transaction_for_storage(transaction_data)
+
+# Compute deterministic hash (same algorithm as CDC Agent)
+tx_hash = client.compute_transaction_hash(transaction_data)
+```
+
+This integration ensures:
+- **Consistency**: Recording and verification use identical normalization and hashing
+- **Maintainability**: Single source of truth for transaction processing logic
+- **Compatibility**: Seamless integration between CDC Agent and SDK
+
 ## Data Normalization
 
 The SDK automatically handles different data formats:
@@ -964,6 +988,35 @@ normalized = client.normalize_transaction({
     "created_at": "2024-01-01 10:00:00"
 })
 # Returns: {"amount": "100.50", "created_at": "2024-01-01T10:00:00.000"}
+```
+
+#### prepare_transaction_for_storage
+
+```python
+def prepare_transaction_for_storage(
+    transaction_data: Dict[str, Any]
+) -> Dict[str, Any]
+```
+
+Prepares transaction data for storage by normalizing it according to ETRAP standards.
+This method ensures consistent formatting of transaction data before it's hashed and stored,
+matching CDC agent requirements. This is an alias for `normalize_transaction()` for clarity.
+
+**Parameters:**
+- `transaction_data` (Dict[str, Any]): Raw transaction data from database
+
+**Returns:**
+- `Dict[str, Any]`: Normalized transaction data ready for hashing
+
+**Example:**
+```python
+# Used by CDC Agent for consistent data processing
+prepared_data = client.prepare_transaction_for_storage({
+    "id": 123,
+    "amount": 100.50,
+    "created_at": 1718351455461  # Epoch timestamp
+})
+# Returns normalized data with consistent formatting
 ```
 
 #### compute_transaction_hash
