@@ -303,17 +303,23 @@ The `get-nft` command provides comprehensive blockchain asset information:
 
 ### Transaction Verification
 
-The SDK automatically normalizes transaction data to match the format used by the CDC agent:
+The SDK automatically normalizes transaction data to match the format used by the CDC agent, including intelligent timestamp handling:
 
 ```python
-# All these formats work:
-tx1 = {"amount": 999.99, "created_at": "2025-06-14 07:10:55.461133"}  # DB format
-tx2 = {"amount": "999.99", "created_at": "2025-06-14T07:10:55.461"}   # Normalized
+# All these formats work seamlessly:
+tx1 = {"amount": 999.99, "created_at": "2025-06-14 07:10:55.461133"}  # PostgreSQL format
+tx2 = {"amount": "999.99", "created_at": "2025-06-14T07:10:55.461"}   # ISO format
+tx3 = {"amount": 999.99, "created_at": 1718351455461}                 # Epoch milliseconds
+tx4 = {"amount": 999.99, "created_at": 1718351455}                    # Epoch seconds
 
-# Both will verify successfully
+# All will verify successfully with the same hash
 result1 = await client.verify_transaction(tx1)
 result2 = await client.verify_transaction(tx2)
+result3 = await client.verify_transaction(tx3)
+result4 = await client.verify_transaction(tx4)
 ```
+
+**Note:** You can copy transaction data directly from PostgreSQL queries without converting timestamps - the SDK handles all format conversions automatically.
 
 ### Batch Verification
 
@@ -504,13 +510,43 @@ This integration ensures:
 
 ## Data Normalization
 
-The SDK automatically handles different data formats:
+The SDK automatically handles different data formats, including comprehensive timestamp normalization:
 
-| Field Type | Database Format | Normalized Format |
+### Timestamp Fields
+
+Fields ending with `_at` are automatically detected as timestamps and normalized. The SDK accepts multiple input formats and converts them to the appropriate format for consistent hashing:
+
+**Accepted Input Formats:**
+- ISO date strings: `"2025-07-08 04:21:15.285416"` or `"2025-07-08T04:21:15.285416"`
+- Epoch seconds: `1751973675` (10 digits)
+- Epoch milliseconds: `1751973675285` (13 digits)
+- Epoch microseconds: `1751973675285416` (16 digits)
+- With or without timezone: `"2025-07-08T04:21:15.285416Z"` or `"2025-07-08T04:21:15.285416+00:00"`
+
+**Internal Processing:**
+- ISO strings in timestamp fields are converted to epoch milliseconds before hashing
+- Numeric timestamps are normalized to ISO format with millisecond precision
+- This ensures consistent transaction hashes regardless of input format
+
+### Normalization Summary
+
+| Field Type | Input Examples | Normalized Format |
 |------------|----------------|-------------------|
 | Amounts | `999.99` (number) | `"999.99"` (string) |
-| Timestamps | `2025-06-14 07:10:55` | `2025-06-14T07:10:55` |
+| Timestamps (ISO) | `"2025-06-14 07:10:55.461133"` | Epoch ms: `1718351455461` |
+| Timestamps (Epoch) | `1718351455` (seconds) | ISO: `"2025-06-14T07:10:55.461"` |
 | Precision | `.461133` (6 decimals) | `.461` (3 decimals) |
+
+**Example:**
+```python
+# All these formats will produce the same transaction hash:
+tx1 = {"created_at": "2025-07-08 04:21:15.285416"}      # PostgreSQL format
+tx2 = {"created_at": "2025-07-08T04:21:15.285416"}      # ISO format
+tx3 = {"created_at": 1751973675285}                     # Epoch milliseconds
+tx4 = {"created_at": 1751973675}                        # Epoch seconds
+
+# The SDK normalizes all of them consistently for verification
+```
 
 ## Error Handling
 
