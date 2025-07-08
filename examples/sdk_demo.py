@@ -82,6 +82,88 @@ from etrap_sdk import (
 from etrap_sdk.utils import format_transaction_summary, parse_timestamp
 
 
+def preprocess_transaction_data(data: Any) -> Any:
+    """
+    Preprocess transaction data to convert ISO date strings to epoch milliseconds.
+    
+    This function recursively scans the data structure and converts any ISO-formatted
+    date strings to epoch milliseconds, which is the format expected by the SDK.
+    
+    Supported formats:
+    - "2025-07-08 04:21:15.285416" (space separator)
+    - "2025-07-08T04:21:15.285416" (T separator)
+    - With or without microseconds
+    - With or without timezone
+    
+    Args:
+        data: Transaction data (dict, list, or primitive)
+        
+    Returns:
+        Preprocessed data with dates converted to epoch milliseconds
+    """
+    if isinstance(data, dict):
+        result = {}
+        for key, value in data.items():
+            # Check if this looks like a timestamp field
+            if key.endswith('_at') and isinstance(value, str):
+                # Try to parse as ISO date
+                try:
+                    # Handle both space and T separators
+                    normalized_value = value.replace(' ', 'T')
+                    
+                    # Parse the timestamp
+                    if '.' in normalized_value:
+                        # Has fractional seconds
+                        if '+' in normalized_value or normalized_value.endswith('Z'):
+                            # Has timezone
+                            dt = datetime.fromisoformat(normalized_value.replace('Z', '+00:00'))
+                        else:
+                            # No timezone, assume local
+                            dt = datetime.fromisoformat(normalized_value)
+                    else:
+                        # No fractional seconds
+                        if '+' in normalized_value or normalized_value.endswith('Z'):
+                            # Has timezone
+                            dt = datetime.fromisoformat(normalized_value.replace('Z', '+00:00'))
+                        else:
+                            # No timezone
+                            dt = datetime.fromisoformat(normalized_value)
+                    
+                    # Convert to epoch milliseconds
+                    epoch_ms = int(dt.timestamp() * 1000)
+                    result[key] = epoch_ms
+                except (ValueError, AttributeError):
+                    # Not a valid date, keep original value
+                    result[key] = value
+            else:
+                # Recursively process nested structures
+                result[key] = preprocess_transaction_data(value)
+        return result
+    elif isinstance(data, list):
+        return [preprocess_transaction_data(item) for item in data]
+    else:
+        # For any string that looks like an ISO date (even if not in a _at field)
+        if isinstance(data, str) and len(data) >= 19:
+            # Basic check for YYYY-MM-DD format at the beginning
+            if data[:4].isdigit() and data[4] == '-' and data[7] == '-':
+                try:
+                    normalized_value = data.replace(' ', 'T')
+                    if '.' in normalized_value:
+                        if '+' in normalized_value or normalized_value.endswith('Z'):
+                            dt = datetime.fromisoformat(normalized_value.replace('Z', '+00:00'))
+                        else:
+                            dt = datetime.fromisoformat(normalized_value)
+                    else:
+                        if '+' in normalized_value or normalized_value.endswith('Z'):
+                            dt = datetime.fromisoformat(normalized_value.replace('Z', '+00:00'))
+                        else:
+                            dt = datetime.fromisoformat(normalized_value)
+                    return int(dt.timestamp() * 1000)
+                except (ValueError, AttributeError):
+                    pass
+        return data
+
+
 class ComprehensiveVerifier:
     """Comprehensive verification tool using ETRAP SDK."""
     
@@ -810,6 +892,8 @@ async def main():
             # Parse transaction data
             try:
                 transaction_data = json.loads(args.data)
+                # Preprocess to convert ISO dates to epoch milliseconds
+                transaction_data = preprocess_transaction_data(transaction_data)
             except json.JSONDecodeError:
                 print("Error: Invalid JSON data", file=sys.stderr)
                 return 1
