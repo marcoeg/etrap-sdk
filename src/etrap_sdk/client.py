@@ -1157,6 +1157,22 @@ class ETRAPClient:
         """
         return normalize_transaction_data(transaction_data)
     
+    def prepare_transaction_for_storage(self, transaction_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Prepare transaction data for storage by normalizing it.
+        
+        This method ensures consistent formatting of transaction data
+        before it's hashed and stored, matching CDC agent requirements.
+        This is an alias for normalize_transaction() for clarity.
+        
+        Args:
+            transaction_data: Raw transaction data from database
+            
+        Returns:
+            Normalized transaction data ready for hashing
+        """
+        return self.normalize_transaction(transaction_data)
+    
     def compute_transaction_hash(
         self,
         transaction_data: Dict[str, Any],

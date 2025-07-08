@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Marco Graziano", email = "marco@graziano.com" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.8"
 dependencies = [
     "py-near==1.1.52",  # Pin to stable version - 1.1.57+ has broken dependencies
     "boto3>=1.26.0",
